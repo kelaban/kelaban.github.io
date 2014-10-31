@@ -1,0 +1,3 @@
+[submodule "nhl-around-the-world"]
+	path = nhl-around-the-world
+	url = https://github.com/kelaban/nhl-around-the-world/
