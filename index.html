@@ -1,1 +1,162 @@
-Hello World
+<!DOCTYPE>
+<html>
+  <head>
+    <title>Keith Laban</title>
+    <link href='http://fonts.googleapis.com/css?family=Dosis' rel='stylesheet' type='text/css'>
+  </head>
+  <style>
+    html, body{
+      height: 100%;
+      font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+      font-weight: 300;
+      font-size: 24px;
+    }
+
+    #container {
+      height: 100%;
+      width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #inner {
+      width: 100%
+    }
+
+    .slide {
+      height: 100%;
+      width: 100%;
+      text-align: center;
+      display: table;
+      color: #8C7367;
+    }
+
+    .slide .content {
+      display: table-cell;
+      vertical-align: middle;
+    }
+
+
+    .really_big {
+      font-size: 80px;
+    }
+
+    .bold {
+      font-weight: bold;
+    }
+
+
+    .break {
+      background-color: #F2524B;
+      color: #88F491;
+    }
+
+
+    a {
+      margin: 50px;
+      text-decoration: none;
+      font-weight: bold;
+      color: #F2524B;
+    }
+
+    a:hover {
+      color: #8C7367;
+    }
+
+    .small {
+      font-size: 12px;
+    }
+
+    .medium {
+      font-size: 24px;
+    }
+
+    .large {
+      font-size: 48px;
+    }
+
+    .huge {
+      font-size: 96px;
+    }
+
+
+    ul {
+      list-style-type: none;
+    }
+
+    li {
+      margin: 20px;
+    }
+
+
+  </style>
+
+  <body>
+    <div id="container">
+      <div id="inner">
+        <article id="slide__one" class="slide">
+          <div class="content huge">
+            <p class="bold" > keith laban </p>
+            <p class="medium">
+              <a id="mail_me" target="_blank" href="mailto:laban@k317h.com">email</a>
+              <a id="github_me" target="_blank" href="https://github.com/kelaban">github</a>
+            </p>
+          </div>
+        </article>
+        <article id="break__one" class="slide break">
+          <div class="content large">
+            <p> BUT WHAT DO YOU DO </p>
+          </div>
+        </article>
+        <article id="slide__two" class="slide">
+          <div class="content medium">
+            <p>
+              I'M AN
+              <span class="large">engineer</span>
+              AT
+              <span class="large" >bloomberg</span>
+              LP
+            </p>
+          </div>
+        </article>
+        <article id="break__two" class="slide break">
+          <div class="content large">
+            <p> SHOW ME SOMETHING COOL </p>
+          </div>
+        </article>
+        <article id="slide__three" class="slide">
+          <div class="content large">
+            <a href="/nhl-around-the-world">nhl dataviz</a>
+          </div>
+        </article>
+        <article id="break__three" class="slide break">
+          <div class="content large">
+            <p> TELL ME A BEDTIME STORY </p>
+          </div>
+        </article>
+        <article id="slide__four" class="slide">
+          <div class="content small">
+            <p>
+              any opinions stated are my own and should in no way reflect bloomberg lp.
+            </p>
+            <p>
+              work and code samples that are linked to are not affiliated with bloomberg lp unless otherwise noted.
+            </p>
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-56442513-1', 'auto');
+      ga('send', 'pageview');
+
+    </script>
+  </body>
+
+</html>
