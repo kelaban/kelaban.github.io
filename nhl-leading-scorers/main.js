@@ -1,23 +1,5 @@
-<!DOCTYPE html>
-<meta charset="utf-8">
-<style>
-
-text {
-  font: 10px sans-serif;
-}
-
-circle.parent {
-  fill-opacity: .1;
-}
-
-.chord {
-  fill-opacity: .25;
-}
-
-</style>
-<body>
-<script src="lib/d3.v3.min.js"></script>
-<script>
+var d3 = require('d3');
+var _  = require('lodash');
 
 var outerRadius = 600 / 2,
     innerRadius = outerRadius - 20,
@@ -38,7 +20,7 @@ var bubble = d3.layout.pack()
 
 var chord = d3.layout.chord()
     .padding(.05)
-    .sortSubgroups(d3.descending)
+    .sortGroups(d3.descending)
     .sortChords(d3.descending);
 
 var svg = d3.select("body").append("svg")
@@ -58,57 +40,71 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
                    .attr("class", "bubbles")
                    .attr("transform", "translate(" + nodesTranslate + "," + nodesTranslate + ")")
 
-  bubbles.selectAll("circle")
-    .data(nodes)
-    .enter().append("svg:circle")
+  var bubbleEnter = bubbles.selectAll("g")
+    .data(nodes.filter(function(d) {
+      return d.depth === 1;
+    }))
+    .enter().append("g")
     .each(function(d) {
       if(d.children) {
         playerData.playersById[d.id].data = d;
       }
     })
-    .attr("class", function(d) { return d.children ? "parent" : "child"; })
-    .attr("cx", function(d) { return d.x; })
-    .attr("cy", function(d) { return d.y; })
-    .attr("r", function(d) { return d.r; })
-    .style("fill", function(d) { return d.children ? "blue" : color(d.team) } );
+    .attr("class", "bubble")
+    .attr("id", function(d) {
+      return "b_"+d.id;
+    });
 
-  bubbles.selectAll("text")
-      .data(nodes)
-      .enter().append("svg:text")
-      .filter(function(d) { return d.children })
-      .attr("x", function(d) { return d.x; })
-      .attr("y", function(d) { return d.y; })
-      .attr("dy", ".3em")
-      .style("text-anchor", "middle")
-      .text(function(d) { return d.name.substring(0, d.r / 3); });
+  bubbleEnter.append("text")
+            .attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; })
+            .attr("dy", ".3em")
+            .style("text-anchor", "middle")
+            .text(function(d) { return d.name.substring(0, d.r / 3); });
 
+  bubbleEnter.append("circle")
+            .attr("class", function(d) { return d.children ? "parent" : "child"; })
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; })
+            .attr("r", function(d) { return d.r; })
+            .style("fill", function(d) { return d.children ? "blue" : color(d.team) } )
+            .on("mouseover", function(d) {
+              d3.selectAll(".chord.p_"+d.id).style("display", "inherit");
+            })
+            .on("mouseout", function(d) {
+              d3.selectAll(".chord.p_"+d.id).style("display", "none");
+            });
+
+
+  bubbleEnter.append("title")
+            .text(function(d) { return d.name });
 
   var arcsByTid = {};
   var arcs = svg.append("g")
       .attr("class", "arcs")
       .attr("transform", "translate(" + chordsTranslate + "," + chordsTranslate + ")")
 
-  var arcEnter = arcs.selectAll("g.labels")
-                      .data(chord.groups())
-                      .enter().append("g").attr("class", "arc__label")
-                      .each(function(d) {
-                        arcsByTid[d.index] = {
-                          start: d.startAngle,
-                          current: d.startAngle,
-                          end: d.endAngle,
-                          value: d.value
-                        }
-                      })
-                      .append("text")
-                          .attr("class","arc__label")
-                          .attr("dy", ".35em")
-                          .attr("text-anchor", function(d) { return angle(d) > Math.PI ? "end" : null; })
-                          .attr("transform", function(d) {
-                              return "rotate(" + (angle(d) * 180 / Math.PI - 90) + ")"
-                                  + "translate(" + (outerRadius + 5) + ")"
-                                  + (angle(d) > Math.PI ? "rotate(180)" : "");
-                          })
-                          .text(function(d) { return playerData.teamById[d.index].name; })
+  arcs.selectAll("g.labels")
+      .data(chord.groups())
+      .enter().append("g").attr("class", "arc__label")
+      .each(function(d) {
+        arcsByTid[d.index] = {
+          start: d.startAngle,
+          current: d.startAngle,
+          end: d.endAngle,
+          value: d.value
+        }
+      })
+      .append("text")
+          .attr("class","arc__label")
+          .attr("dy", ".35em")
+          .attr("text-anchor", function(d) { return angle(d) > Math.PI ? "end" : null; })
+          .attr("transform", function(d) {
+              return "rotate(" + (angle(d) * 180 / Math.PI - 90) + ")"
+                  + "translate(" + (outerRadius + 5) + ")"
+                  + (angle(d) > Math.PI ? "rotate(180)" : "");
+          })
+          .text(function(d) { return playerData.teamById[d.index].name; })
 
 
   var diag = d3.svg.diagonal.radial();
@@ -119,15 +115,23 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
                   .attr("transform", "translate(" + chordsTranslate + "," + chordsTranslate + ")")
                   .selectAll("g")
                   .data(playerData.links)
-                  .enter().append("g").append("path")
-                  .attr("class", "chord")
+                  .enter().append("path")
+                  .attr("class", function(d) {
+                    return "chord t_" + d.tId + " p_" + d.pId;
+                  })
+                  .attr("id", function(d) {
+                    var key = d.key = "p_"+d.pId+"_t_"+d.tId;
+                    return key;
+                  })
                   .attr("d", createLinks)
                   .style("fill", function(d) {
                     return color(d.tId);
                   })
+                  .style("fill-opacity", .75)
                   .style("stroke",function(d) { return color(d.tId); })
-                  .style("stroke-width", "1px")
-                  .style("stroke-opacity",.1);
+                  .style("stroke-width", ".25px")
+                  .style("stroke-opacity", 1)
+                  .style("display", "none");
 
   var arcEnter = arcs.selectAll("g.arcs")
                       .data(playerData.links)
@@ -135,11 +139,17 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
 
   arcEnter.append("path")
       .style("fill", function(d) { return color(d.tId); })
-      .style("fill-opacity", ".5")
+      .style("fill-opacity", ".1")
       .style("stroke", function(d) { return color(d.tId); })
-      .style("stroke-opacity", ".1")
+      .style("stroke-opacity", "1")
       .style("stroke-width", "2px")
-      .attr("d", d3.svg.arc().innerRadius(innerRadius).outerRadius(outerRadius));
+      .attr("d", d3.svg.arc().innerRadius(innerRadius).outerRadius(outerRadius))
+      .on("mouseover", function(d) {
+        d3.selectAll(".chord.t_"+d.tId).style("display", "inherit");
+      })
+      .on("mouseout", function(d) {
+        d3.selectAll(".chord.t_"+d.tId).style("display", "none");
+      });
 
 
 
@@ -157,13 +167,10 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
     d.value = contrib;
     d.name = playerData.teamById[d.tId].name;
 
-    teamTotals[d.tId] = teamTotals[d.tId] || { t: arc.value, counted: 0};
-    teamTotals[d.tId].counted+=contrib;
-
     var l1 = {
       source: {
-        x: innerRadius * Math.cos(as - 1.57079633 ),
-        y: innerRadius * Math.sin(as - 1.57079633),
+        x: innerRadius * Math.cos(as - Math.PI / 2 ),
+        y: innerRadius * Math.sin(as - Math.PI / 2 ),
       },
       target: {
         x: player.data.x - (chordsTranslate - nodesTranslate),
@@ -174,12 +181,12 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
     var l2 = {
       target: {
         x: innerRadius * Math.cos(ae - 1.57079633 ),
-        y: innerRadius * Math.sin(ae - 1.57079633),
+        y: innerRadius * Math.sin(ae - 1.57079633 ),
       },
 
       source: {
-        x: player.data.x - (chordsTranslate - nodesTranslate) + 2,
-        y: player.data.y - (chordsTranslate - nodesTranslate) + 2
+        x: player.data.x - (chordsTranslate - nodesTranslate),
+        y: player.data.y - (chordsTranslate - nodesTranslate)
       }
 
     }
@@ -219,7 +226,7 @@ function players(list) {
   var teamByName = {};
   var teamId = 0;
   list.forEach(function(player) {
-    if(parseInt(player.id) > 75) return;
+    if(parseInt(player.id) > 25) return;
     var p = playersById[player.id] = playersById[player.id] || Player(player.name);
     var t = teamByName[player.team] = teamByName[player.team] || ( { id: teamId++, count: 0 })
     var teamStat = p.teamStats[player.team] = p.teamStats[player.team] || TeamStats(player.team, t.id);
@@ -262,7 +269,8 @@ function players(list) {
 
       links.push({
         tId: s.id,
-        pId: k
+        pId: k,
+        count: s.points
       });
     });
 
@@ -276,9 +284,7 @@ function players(list) {
 
   });
 
-
+  links = _.chain(links).sortBy('count').reverse().value();
 
   return {bubbles: {children: bubbleData}, matrix: matrix, teamById: teamById, playersById: playersById, links: links};
 }
-
-</script>
