@@ -87,7 +87,14 @@ var BubbleView = Backbone.View.extend({
 
   appendTitle: function(bubbleEnter) {
     bubbleEnter.append("title")
-              .text(function(d) { return d.label + ": " + d.value; });
+      .text(function(d) {
+        var teamToValue = d.teamStats.map(function(stats) {
+          return stats.label + " → " + stats.value;
+        }).join("\n");
+
+        return d.label + ": " + d.value + "\n" + teamToValue;
+      });
+
   },
 
   packLayout: function() {
@@ -99,16 +106,21 @@ var BubbleView = Backbone.View.extend({
 
 
   bindEvents: function(bubbleEnter) {
-    bubbleEnter.on("mouseover", function(d) {
-      Events.reset();
-      d3.selectAll(".bubble:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
+    bubbleEnter
+      .on("mouseover", function(d) {
+        Events.reset();
+        d3.selectAll(".bubble:not(.clicked):not(.bubble_"+d.cid+"), " +
+                      ".chord:not(.clicked):not(.bubble_"+d.cid+")")
+          .classed({inactive: true});
 
-      d3.selectAll(".chord:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
-
-    })
-    .on("mouseout", Events.mouseout);
+        d3.selectAll(".chord.bubble_"+d.cid)
+          .each(function(el) {
+            d3.select(".arc.arc_"+el.arcCid)
+              .classed({active: true});
+          });
+      })
+      .on("mouseout", Events.mouseout)
+      .on("click", Events.clicked);
   }
 
 

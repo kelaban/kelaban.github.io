@@ -4,7 +4,6 @@
 
 body {
   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
-  font-weight: 300;
 }
 
 
@@ -18,12 +17,21 @@ text {
   cursor: default;
 }
 
+.arc.active text {
+  font-weight: bold;
+}
+
 .bubble {
   fill-opacity: 0.75;
 }
 
 .bubble.inactive {
   fill-opacity: 0.1;
+}
+
+.bubble.clicked circle {
+  stroke: #222;
+  stroke-width: 3px;
 }
 
 
@@ -78,14 +86,24 @@ h1 {
   </p>
 
   <p>
-    <b>Hint</b>: Hover over teams, players and chords for a more detailed look. Keep mouseover for a toolbar
+    <b>Hint</b>: Hover over or click on teams, players and chords for a more detailed look. Keep mouse over for a toolbar. click to lock, again to unlock
   </p>
 
 </div>
 <div id=data-viz> </div>
 <div>
   <p>
-    Below are the top 600 scorers, while the graph is hard to read here, it is intersting to see how the teams with the most goals shift around. If you look at the Rangers and Red Wings, you will notice they have many players in the center (high career goal scorers), although that doesnt necessarily mean that those players have scored the majority of their goals on that team.
+    Below are the top 600 scorers, while the graph is hard to read here, it is intersting to see how the teams with the most goals shift around.
+    Notice how the Bruins moved from the 10th spot to the 2nd. And the Oilers dropped all the way down from 4th to 16th.
+  </p>
+  <p>
+    If you look at the Rangers and Red Wings, you will notice they have had many high career goal scorers play for them (center of the graphic).
+    Actually, they've had a piece of 9 out of the 10 top goal scorers of all time. Mario Lemieux is the only player missing, who played his entire NHL career for the Penguins.
+  </p>
+  <p>
+    Additionally, if you focus in just on the Rangers, you will notice that they have had 8 out of 10 of them.
+    Which is pretty crazy considering none of them scored the majority of their goals in New York.
+    Talk about 1940 and fluke '94!
   </p>
 </div>
 <div id=data-viz-2> </div>

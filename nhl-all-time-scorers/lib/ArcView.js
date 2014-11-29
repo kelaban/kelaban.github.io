@@ -33,7 +33,10 @@ var ArcView = Backbone.View.extend({
     return d3.select(this.el)
             .selectAll("g")
             .data(groups)
-            .enter().append("g");
+            .enter().append("g")
+            .attr("class", function(d) {
+              return "arc arc_"+d.cid;
+            });
   },
 
 
@@ -42,11 +45,14 @@ var ArcView = Backbone.View.extend({
     arcEnter.on("mouseover", function(d) {
       Events.reset();
 
-      d3.selectAll(".chord:not(.arc_"+d.cid+")")
+      d3.selectAll(".chord:not(.clicked):not(.arc_"+d.cid+")")
         .classed({inactive: true});
 
-      d3.selectAll(".bubble")
+      d3.selectAll(".bubble:not(.clicked)")
         .classed({inactive: true});
+
+      d3.selectAll(".arc.arc_"+d.cid)
+        .classed({active: true});
 
       d3.selectAll(".chord.arc_"+d.cid)
         .each(function(el) {
@@ -54,7 +60,8 @@ var ArcView = Backbone.View.extend({
             .classed({inactive: false});
         });
     })
-    .on("mouseout", Events.mouseout);
+    .on("mouseout", Events.mouseout)
+    .on("click", Events.clicked);
   },
 
 

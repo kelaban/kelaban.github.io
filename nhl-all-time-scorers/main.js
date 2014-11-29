@@ -93,8 +93,10 @@ function buildView(players, container) {
           label: stats.name,
           color: color(teamName)
         });
+
         arc.incrementValueBy(stats.value);
         bubble.incrementValueBy(stats.value);
+        bubble.addTeamStats(teamName, stats.value);
 
         chords.add({
           arc: arc,

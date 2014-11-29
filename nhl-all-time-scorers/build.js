@@ -81,7 +81,10 @@ var ArcView = Backbone.View.extend({
     return d3.select(this.el)
             .selectAll("g")
             .data(groups)
-            .enter().append("g");
+            .enter().append("g")
+            .attr("class", function(d) {
+              return "arc arc_"+d.cid;
+            });
   },
 
 
@@ -90,11 +93,14 @@ var ArcView = Backbone.View.extend({
     arcEnter.on("mouseover", function(d) {
       Events.reset();
 
-      d3.selectAll(".chord:not(.arc_"+d.cid+")")
+      d3.selectAll(".chord:not(.clicked):not(.arc_"+d.cid+")")
         .classed({inactive: true});
 
-      d3.selectAll(".bubble")
+      d3.selectAll(".bubble:not(.clicked)")
         .classed({inactive: true});
+
+      d3.selectAll(".arc.arc_"+d.cid)
+        .classed({active: true});
 
       d3.selectAll(".chord.arc_"+d.cid)
         .each(function(el) {
@@ -102,7 +108,8 @@ var ArcView = Backbone.View.extend({
             .classed({inactive: false});
         });
     })
-    .on("mouseout", Events.mouseout);
+    .on("mouseout", Events.mouseout)
+    .on("click", Events.clicked);
   },
 
 
@@ -218,12 +225,25 @@ var BubbleModel = Backbone.Model.extend({
 
   defaults: {
     label: null,
-    value: 0
+    value: 0,
+  },
+
+  initialize: function () {
+    this.set({ teamStats: [] });
   },
 
   incrementValueBy: function(v) {
     var value = this.get('value');
     this.set({ value: v + value});
+  },
+
+  addTeamStats: function(label, value) {
+    var teamStats = this.get('teamStats');
+
+    teamStats.push({
+      label: label,
+      value: value
+    });
   },
 
   toJSON: function() {
@@ -325,7 +345,14 @@ var BubbleView = Backbone.View.extend({
 
   appendTitle: function(bubbleEnter) {
     bubbleEnter.append("title")
-              .text(function(d) { return d.label + ": " + d.value; });
+      .text(function(d) {
+        var teamToValue = d.teamStats.map(function(stats) {
+          return stats.label + " → " + stats.value;
+        }).join("\n");
+
+        return d.label + ": " + d.value + "\n" + teamToValue;
+      });
+
   },
 
   packLayout: function() {
@@ -337,16 +364,21 @@ var BubbleView = Backbone.View.extend({
 
 
   bindEvents: function(bubbleEnter) {
-    bubbleEnter.on("mouseover", function(d) {
-      Events.reset();
-      d3.selectAll(".bubble:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
+    bubbleEnter
+      .on("mouseover", function(d) {
+        Events.reset();
+        d3.selectAll(".bubble:not(.clicked):not(.bubble_"+d.cid+"), " +
+                      ".chord:not(.clicked):not(.bubble_"+d.cid+")")
+          .classed({inactive: true});
 
-      d3.selectAll(".chord:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
-
-    })
-    .on("mouseout", Events.mouseout);
+        d3.selectAll(".chord.bubble_"+d.cid)
+          .each(function(el) {
+            d3.select(".arc.arc_"+el.arcCid)
+              .classed({active: true});
+          });
+      })
+      .on("mouseout", Events.mouseout)
+      .on("click", Events.clicked);
   }
 
 
@@ -491,14 +523,15 @@ var ChordView = Backbone.View.extend({
       .on('mouseover', function(d) {
         Events.reset();
 
-        d3.selectAll(".bubble:not(.bubble_"+d.bubbleCid+")")
+        d3.selectAll(".bubble:not(.clicked):not(.bubble_"+d.bubbleCid+")")
           .classed({inactive: true});
 
-        d3.selectAll(".chord:not(.chord_"+d.cid+")")
+        d3.selectAll(".chord:not(.clicked):not(.chord_"+d.cid+")")
           .classed({inactive: true});
 
       })
-      .on('mouseout', Events.mouseout);
+      .on('mouseout', Events.mouseout)
+      .on("click", Events.clicked);
   },
 
 
@@ -579,22 +612,51 @@ function cancel() {
 
 
 function mouseout() {
-  delay(reset, 500);
+  var anyClicked = d3.selectAll(".clicked")[0].length;
+
+  if(anyClicked) {
+    delay(resetWhenClicked, 500);
+  } else {
+    delay(reset, 500);
+  }
+}
+
+function resetWhenClicked() {
+  cancel();
+
+  var chords = d3.selectAll(".chord:not(.inactive):not(.clicked)");
+  var bubbles = d3.selectAll(".bubble:not(.inactive):not(.clicked)");
+  var arcs = d3.selectAll(".arc.active:not(.clicked)");
+
+  chords.classed({inactive: true});
+  bubbles.classed({inactive: true});
+  arcs.classed({active: false});
 }
 
 function reset() {
   cancel();
-  var chords = d3.selectAll(".chord.inactive");
-  var bubbles = d3.selectAll(".bubble.inactive");
+
+  var chords = d3.selectAll(".chord.inactive:not(.clicked)");
+  var bubbles = d3.selectAll(".bubble.inactive:not(.clicked)");
+  var arcs = d3.selectAll(".arc.active:not(.clicked)");
 
   chords.classed({inactive: false});
   bubbles.classed({inactive: false});
+  arcs.classed({active: false});
+}
+
+function clicked(d) {
+  var isClicked = d3.select(this).classed("clicked");
+
+  d3.selectAll(".bubble:not(.inactive), .chord:not(.inactive), .arc.active")
+    .classed({clicked: !isClicked});
 }
 
 
 module.exports = {
   mouseout: mouseout,
-  reset: reset
+  reset: reset,
+  clicked: clicked
 };
 
 },{}],11:[function(require,module,exports){
@@ -693,8 +755,10 @@ function buildView(players, container) {
           label: stats.name,
           color: color(teamName)
         });
+
         arc.incrementValueBy(stats.value);
         bubble.incrementValueBy(stats.value);
+        bubble.addTeamStats(teamName, stats.value);
 
         chords.add({
           arc: arc,

@@ -5,12 +5,25 @@ var BubbleModel = Backbone.Model.extend({
 
   defaults: {
     label: null,
-    value: 0
+    value: 0,
+  },
+
+  initialize: function () {
+    this.set({ teamStats: [] });
   },
 
   incrementValueBy: function(v) {
     var value = this.get('value');
     this.set({ value: v + value});
+  },
+
+  addTeamStats: function(label, value) {
+    var teamStats = this.get('teamStats');
+
+    teamStats.push({
+      label: label,
+      value: value
+    });
   },
 
   toJSON: function() {

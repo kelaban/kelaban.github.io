@@ -50,14 +50,15 @@ var ChordView = Backbone.View.extend({
       .on('mouseover', function(d) {
         Events.reset();
 
-        d3.selectAll(".bubble:not(.bubble_"+d.bubbleCid+")")
+        d3.selectAll(".bubble:not(.clicked):not(.bubble_"+d.bubbleCid+")")
           .classed({inactive: true});
 
-        d3.selectAll(".chord:not(.chord_"+d.cid+")")
+        d3.selectAll(".chord:not(.clicked):not(.chord_"+d.cid+")")
           .classed({inactive: true});
 
       })
-      .on('mouseout', Events.mouseout);
+      .on('mouseout', Events.mouseout)
+      .on("click", Events.clicked);
   },
 
 
