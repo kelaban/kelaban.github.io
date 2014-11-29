@@ -1,6 +1,7 @@
 var _ = require('lodash');
 var d3 = require('d3');
 var Backbone = require('backbone');
+var Events = require('./Events');
 
 function defaultSort(a, b) {
   a = a.value; b = b.value;
@@ -28,28 +29,11 @@ var BubbleView = Backbone.View.extend({
     });
 
     var bubbleEnter = this.enter(nodes);
-    bubbleEnter.on("mouseover", function(d) {
-      d3.selectAll(".bubble:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
-
-      d3.selectAll(".chord:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
-
-
-    })
-    .on("mouseout", function(d) {
-      d3.selectAll(".bubble")
-        .classed({inactive: false});
-
-      d3.selectAll(".chord")
-        .classed({inactive: false});
-
-    });
 
     this.appendCircle(bubbleEnter);
     this.appendText(bubbleEnter);
     this.appendTitle(bubbleEnter);
-
+    this.bindEvents(bubbleEnter);
   },
 
   moveToFront: function() {
@@ -68,22 +52,29 @@ var BubbleView = Backbone.View.extend({
   },
 
   appendText: function(bubbleEnter) {
-    bubbleEnter.append("text")
+    var text = bubbleEnter.append("text")
       .attr("x", function(d) { return d.x; })
       .attr("y", function(d) { return d.y; })
       .style("text-anchor", "middle")
-      .html(function(d) {
-        var nameParts = d.label.split(" ");
-        var firstName = nameParts[0].substring(0, d.r / 4);
-        var lastName = nameParts[1].substring(0, d.r / 4);
-        return "<tspan x=\""+d.x+"\" dy=\"-.3em\">" +
-                firstName +
-               "</tspan>" +
-               "<tspan x=\""+d.x+"\" dy=\"1.2em\">" +
-                lastName +
-               "</tspan>";
-      })
       .style("fill", "#FFF");
+
+    text.append("tspan")
+        .attr("x", function(d) { return d.x; })
+        .attr("dy", "-.3em")
+        .text(function(d) {
+          var nameParts = d.label.split(" ");
+          var firstName = nameParts[0].substring(0, d.r / 3);
+          return firstName;
+        });
+
+    text.append("tspan")
+        .attr("x", function(d) { return d.x; })
+        .attr("dy", "1.2em")
+        .text(function(d) {
+          var nameParts = d.label.split(" ");
+          var lastName = nameParts[1].substring(0, d.r / 3);
+          return lastName;
+        });
   },
 
   appendCircle: function(bubbleEnter) {
@@ -104,7 +95,22 @@ var BubbleView = Backbone.View.extend({
         .sort(this.sort)
         .size([this.diameter*2, this.diameter*2])
         .padding(this.padding);
+  },
+
+
+  bindEvents: function(bubbleEnter) {
+    bubbleEnter.on("mouseover", function(d) {
+      Events.reset();
+      d3.selectAll(".bubble:not(.bubble_"+d.cid+")")
+        .classed({inactive: true});
+
+      d3.selectAll(".chord:not(.bubble_"+d.cid+")")
+        .classed({inactive: true});
+
+    })
+    .on("mouseout", Events.mouseout);
   }
+
 
 });
 

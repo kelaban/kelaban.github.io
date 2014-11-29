@@ -1,6 +1,7 @@
 var _ = require('lodash');
 var d3 = require('d3');
 var Backbone = require('backbone');
+var Events = require('./Events');
 
 
 
@@ -37,7 +38,10 @@ var ArcView = Backbone.View.extend({
 
 
   bindEvents: function(arcEnter) {
+    var self = this;
     arcEnter.on("mouseover", function(d) {
+      Events.reset();
+
       d3.selectAll(".chord:not(.arc_"+d.cid+")")
         .classed({inactive: true});
 
@@ -50,15 +54,7 @@ var ArcView = Backbone.View.extend({
             .classed({inactive: false});
         });
     })
-    .on("mouseout", function(d) {
-
-      d3.selectAll(".chord")
-        .classed({inactive: false});
-
-      d3.selectAll(".bubble")
-        .classed({inactive: false});
-
-    });
+    .on("mouseout", Events.mouseout);
   },
 
 

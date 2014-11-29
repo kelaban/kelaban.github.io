@@ -26,7 +26,7 @@ var ArcCollection = Backbone.Collection.extend({
 
 module.exports = ArcCollection;
 
-},{"./ArcModel":2,"backbone":11}],2:[function(require,module,exports){
+},{"./ArcModel":2,"backbone":12}],2:[function(require,module,exports){
 var Backbone = require('backbone');
 
 var ArcModel = Backbone.Model.extend({
@@ -45,10 +45,11 @@ var ArcModel = Backbone.Model.extend({
 
 module.exports = ArcModel;
 
-},{"backbone":11}],3:[function(require,module,exports){
+},{"backbone":12}],3:[function(require,module,exports){
 var _ = require('lodash');
 var d3 = require('d3');
 var Backbone = require('backbone');
+var Events = require('./Events');
 
 
 
@@ -85,7 +86,10 @@ var ArcView = Backbone.View.extend({
 
 
   bindEvents: function(arcEnter) {
+    var self = this;
     arcEnter.on("mouseover", function(d) {
+      Events.reset();
+
       d3.selectAll(".chord:not(.arc_"+d.cid+")")
         .classed({inactive: true});
 
@@ -98,15 +102,7 @@ var ArcView = Backbone.View.extend({
             .classed({inactive: false});
         });
     })
-    .on("mouseout", function(d) {
-
-      d3.selectAll(".chord")
-        .classed({inactive: false});
-
-      d3.selectAll(".bubble")
-        .classed({inactive: false});
-
-    });
+    .on("mouseout", Events.mouseout);
   },
 
 
@@ -201,7 +197,7 @@ function angle (d) {
 
 module.exports = ArcView;
 
-},{"backbone":11,"d3":13,"lodash":15}],4:[function(require,module,exports){
+},{"./Events":10,"backbone":12,"d3":14,"lodash":16}],4:[function(require,module,exports){
 var Backbone = require('backbone');
 
 
@@ -214,7 +210,7 @@ var BubbleCollection = Backbone.Collection.extend({
 
 module.exports = BubbleCollection;
 
-},{"./BubbleModel":5,"backbone":11}],5:[function(require,module,exports){
+},{"./BubbleModel":5,"backbone":12}],5:[function(require,module,exports){
 var _ = require('lodash');
 var Backbone = require('backbone');
 
@@ -239,10 +235,11 @@ var BubbleModel = Backbone.Model.extend({
 
 module.exports = BubbleModel;
 
-},{"backbone":11,"lodash":15}],6:[function(require,module,exports){
+},{"backbone":12,"lodash":16}],6:[function(require,module,exports){
 var _ = require('lodash');
 var d3 = require('d3');
 var Backbone = require('backbone');
+var Events = require('./Events');
 
 function defaultSort(a, b) {
   a = a.value; b = b.value;
@@ -270,28 +267,11 @@ var BubbleView = Backbone.View.extend({
     });
 
     var bubbleEnter = this.enter(nodes);
-    bubbleEnter.on("mouseover", function(d) {
-      d3.selectAll(".bubble:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
-
-      d3.selectAll(".chord:not(.bubble_"+d.cid+")")
-        .classed({inactive: true});
-
-
-    })
-    .on("mouseout", function(d) {
-      d3.selectAll(".bubble")
-        .classed({inactive: false});
-
-      d3.selectAll(".chord")
-        .classed({inactive: false});
-
-    });
 
     this.appendCircle(bubbleEnter);
     this.appendText(bubbleEnter);
     this.appendTitle(bubbleEnter);
-
+    this.bindEvents(bubbleEnter);
   },
 
   moveToFront: function() {
@@ -310,22 +290,29 @@ var BubbleView = Backbone.View.extend({
   },
 
   appendText: function(bubbleEnter) {
-    bubbleEnter.append("text")
+    var text = bubbleEnter.append("text")
       .attr("x", function(d) { return d.x; })
       .attr("y", function(d) { return d.y; })
       .style("text-anchor", "middle")
-      .html(function(d) {
-        var nameParts = d.label.split(" ");
-        var firstName = nameParts[0].substring(0, d.r / 4);
-        var lastName = nameParts[1].substring(0, d.r / 4);
-        return "<tspan x=\""+d.x+"\" dy=\"-.3em\">" +
-                firstName +
-               "</tspan>" +
-               "<tspan x=\""+d.x+"\" dy=\"1.2em\">" +
-                lastName +
-               "</tspan>";
-      })
       .style("fill", "#FFF");
+
+    text.append("tspan")
+        .attr("x", function(d) { return d.x; })
+        .attr("dy", "-.3em")
+        .text(function(d) {
+          var nameParts = d.label.split(" ");
+          var firstName = nameParts[0].substring(0, d.r / 3);
+          return firstName;
+        });
+
+    text.append("tspan")
+        .attr("x", function(d) { return d.x; })
+        .attr("dy", "1.2em")
+        .text(function(d) {
+          var nameParts = d.label.split(" ");
+          var lastName = nameParts[1].substring(0, d.r / 3);
+          return lastName;
+        });
   },
 
   appendCircle: function(bubbleEnter) {
@@ -346,7 +333,22 @@ var BubbleView = Backbone.View.extend({
         .sort(this.sort)
         .size([this.diameter*2, this.diameter*2])
         .padding(this.padding);
+  },
+
+
+  bindEvents: function(bubbleEnter) {
+    bubbleEnter.on("mouseover", function(d) {
+      Events.reset();
+      d3.selectAll(".bubble:not(.bubble_"+d.cid+")")
+        .classed({inactive: true});
+
+      d3.selectAll(".chord:not(.bubble_"+d.cid+")")
+        .classed({inactive: true});
+
+    })
+    .on("mouseout", Events.mouseout);
   }
+
 
 });
 
@@ -354,7 +356,7 @@ var BubbleView = Backbone.View.extend({
 module.exports = BubbleView;
 
 
-},{"backbone":11,"d3":13,"lodash":15}],7:[function(require,module,exports){
+},{"./Events":10,"backbone":12,"d3":14,"lodash":16}],7:[function(require,module,exports){
 var Backbone = require('backbone');
 
 
@@ -384,7 +386,7 @@ var ChordCollection = Backbone.Collection.extend({
 
 module.exports = ChordCollection;
 
-},{"./ChordModel":8,"backbone":11}],8:[function(require,module,exports){
+},{"./ChordModel":8,"backbone":12}],8:[function(require,module,exports){
 var _ = require('lodash');
 var Backbone = require('backbone');
 
@@ -436,10 +438,11 @@ var ChordModel = Backbone.Model.extend({
 
 module.exports = ChordModel;
 
-},{"backbone":11,"lodash":15}],9:[function(require,module,exports){
+},{"backbone":12,"lodash":16}],9:[function(require,module,exports){
 var _ = require('lodash');
 var d3 = require('d3');
 var Backbone = require('backbone');
+var Events = require('./Events');
 
 
 
@@ -486,6 +489,8 @@ var ChordView = Backbone.View.extend({
   bindEvents: function(chordEnter) {
     chordEnter
       .on('mouseover', function(d) {
+        Events.reset();
+
         d3.selectAll(".bubble:not(.bubble_"+d.bubbleCid+")")
           .classed({inactive: true});
 
@@ -493,13 +498,7 @@ var ChordView = Backbone.View.extend({
           .classed({inactive: true});
 
       })
-      .on('mouseout', function(d) {
-        d3.selectAll(".bubble")
-          .classed({inactive: false});
-
-        d3.selectAll(".chord")
-          .classed({inactive: false});
-      });
+      .on('mouseout', Events.mouseout);
   },
 
 
@@ -564,7 +563,41 @@ var ChordView = Backbone.View.extend({
 
 module.exports = ChordView;
 
-},{"backbone":11,"d3":13,"lodash":15}],10:[function(require,module,exports){
+},{"./Events":10,"backbone":12,"d3":14,"lodash":16}],10:[function(require,module,exports){
+var timeoutId;
+
+
+function delay(fn, timeout) {
+  cancel();
+  timeoutId = setTimeout(fn, timeout);
+}
+
+function cancel() {
+  clearTimeout(timeoutId);
+  timeoutId = null;
+}
+
+
+function mouseout() {
+  delay(reset, 500);
+}
+
+function reset() {
+  cancel();
+  var chords = d3.selectAll(".chord.inactive");
+  var bubbles = d3.selectAll(".bubble.inactive");
+
+  chords.classed({inactive: false});
+  bubbles.classed({inactive: false});
+}
+
+
+module.exports = {
+  mouseout: mouseout,
+  reset: reset
+};
+
+},{}],11:[function(require,module,exports){
 var d3 = require('d3');
 var $ = require('jquery');
 var _ = require('lodash');
@@ -581,9 +614,6 @@ var BubbleView = require('./lib/BubbleView');
 var ArcView = require('./lib/ArcView');
 var ChordView = require('./lib/ChordView');
 
-var arcs = new ArcCollection();
-var bubbles = new BubbleCollection();
-var chords = new ChordCollection();
 
 var outerRadius = 600 / 2,
     innerRadius = outerRadius - 20,
@@ -594,9 +624,9 @@ var outerRadius = 600 / 2,
     color = d3.scale.category20c();
 
 d3.selection.prototype.moveToFront = function() {
-    return this.each(function(){
-          this.parentNode.appendChild(this);
-            });
+  return this.each(function(){
+    this.parentNode.appendChild(this);
+  });
 };
 
 var svg = d3.select("div#data-viz").append("svg")
@@ -618,8 +648,39 @@ svg.append("g")
   .attr("class", "chords")
   .attr("transform", "translate(" + chordsTranslate + "," + chordsTranslate + ")");
 
+var svg_all = d3.select("div#data-viz-2").append("svg")
+    .attr("width", outerRadius * 2 + 200 + "px")
+    .attr("height", outerRadius * 2 + 200 + "px");
+
+svg_all.append("g")
+ .attr("id", "bubble_container_all")
+ .attr("class", "bubbles")
+ .attr("transform", "translate(" + nodesTranslate + "," + nodesTranslate + ")");
+
+svg_all.append("g")
+ .attr("id", "arc_container_all")
+ .attr("class", "arcs_labels")
+ .attr("transform", "translate(" + chordsTranslate + "," + chordsTranslate + ")");
+
+svg_all.append("g")
+  .attr("id", "chords_container_all")
+  .attr("class", "chords")
+  .attr("transform", "translate(" + chordsTranslate + "," + chordsTranslate + ")");
+
 d3.csv("data/leadingScorers.csv", function(error, playerList) {
-  var players = getPlayersFromCSV(playerList, 'goals', 50);
+  var players_50 = getPlayersFromCSV(playerList, 'goals', 50);
+  var players_all = getPlayersFromCSV(playerList, 'goals', 1000);
+
+  buildView(players_50);
+  buildView(players_all, "_all");
+});
+
+function buildView(players, container) {
+  container = container || "";
+
+  var arcs = new ArcCollection();
+  var bubbles = new BubbleCollection();
+  var chords = new ChordCollection();
 
   _.each(players, function(player) {
     var bubble = bubbles.add({
@@ -645,18 +706,16 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
     });
   });
 
-  console.log(chords);
-
 
   var bubbleView = new BubbleView({
-    el: '#bubble_container',
+    el: '#bubble_container'+container,
     collection: bubbles,
     diameter: bubbleDiameter,
     padding: 0
   });
 
   var arcView = new ArcView({
-    el: '#arc_container',
+    el: '#arc_container'+container,
     collection: arcs,
     outerRadius: outerRadius,
     innerRadius: innerRadius,
@@ -664,7 +723,7 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
   });
 
   var chordView = new ChordView({
-    el: '#chords_container',
+    el: '#chords_container'+container,
     collection: chords,
     outerRadius: outerRadius,
     innerRadius: innerRadius,
@@ -677,7 +736,8 @@ d3.csv("data/leadingScorers.csv", function(error, playerList) {
   chordView.render();
 
   bubbleView.moveToFront();
-});
+
+}
 
 
 function getPlayersFromCSV(playerList, sortField, numWanted) {
@@ -708,7 +768,7 @@ function getPlayersFromCSV(playerList, sortField, numWanted) {
   return players;
 }
 
-},{"./lib/ArcCollection":1,"./lib/ArcView":3,"./lib/BubbleCollection":4,"./lib/BubbleView":6,"./lib/ChordCollection":7,"./lib/ChordView":9,"backbone":11,"d3":13,"jquery":14,"lodash":15}],11:[function(require,module,exports){
+},{"./lib/ArcCollection":1,"./lib/ArcView":3,"./lib/BubbleCollection":4,"./lib/BubbleView":6,"./lib/ChordCollection":7,"./lib/ChordView":9,"backbone":12,"d3":14,"jquery":15,"lodash":16}],12:[function(require,module,exports){
 //     Backbone.js 1.1.2
 
 //     (c) 2010-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -2318,7 +2378,7 @@ function getPlayersFromCSV(playerList, sortField, numWanted) {
 
 }));
 
-},{"underscore":12}],12:[function(require,module,exports){
+},{"underscore":13}],13:[function(require,module,exports){
 //     Underscore.js 1.7.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -3735,7 +3795,7 @@ function getPlayersFromCSV(playerList, sortField, numWanted) {
   }
 }.call(this));
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 !function() {
   var d3 = {
     version: "3.4.13"
@@ -12951,7 +13011,7 @@ function getPlayersFromCSV(playerList, sortField, numWanted) {
   if (typeof define === "function" && define.amd) define(d3); else if (typeof module === "object" && module.exports) module.exports = d3;
   this.d3 = d3;
 }();
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.1
  * http://jquery.com/
@@ -22143,7 +22203,7 @@ return jQuery;
 
 }));
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -28932,4 +28992,4 @@ return jQuery;
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}]},{},[10]);
+},{}]},{},[11]);

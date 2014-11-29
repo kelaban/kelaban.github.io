@@ -1,6 +1,7 @@
 var _ = require('lodash');
 var d3 = require('d3');
 var Backbone = require('backbone');
+var Events = require('./Events');
 
 
 
@@ -47,6 +48,8 @@ var ChordView = Backbone.View.extend({
   bindEvents: function(chordEnter) {
     chordEnter
       .on('mouseover', function(d) {
+        Events.reset();
+
         d3.selectAll(".bubble:not(.bubble_"+d.bubbleCid+")")
           .classed({inactive: true});
 
@@ -54,13 +57,7 @@ var ChordView = Backbone.View.extend({
           .classed({inactive: true});
 
       })
-      .on('mouseout', function(d) {
-        d3.selectAll(".bubble")
-          .classed({inactive: false});
-
-        d3.selectAll(".chord")
-          .classed({inactive: false});
-      });
+      .on('mouseout', Events.mouseout);
   },
 
 
