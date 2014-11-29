@@ -6,21 +6,25 @@ module.exports = function(grunt) {
 
 
     browserify: {
-      'build.js': ['main.js'],
+      'build.js': ['main.js']
     },
 
+    uglify: {
+      'build.min.js': ['build.js']
+    },
 
 
     watch: {
       files: ['lib/**/*.js', 'main.js'],
-      tasks: ['browserify']
+      tasks: ['browserify', 'uglify']
     }
 
   });
 
   grunt.loadNpmTasks('grunt-browserify');
+  grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
   // Default task(s).
-  grunt.registerTask('default', ['browserify']);
+  grunt.registerTask('default', ['browserify', 'uglify']);
 };
