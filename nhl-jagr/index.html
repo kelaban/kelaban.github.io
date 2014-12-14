@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+
+<!-- Example based on http://bl.ocks.org/mbostock/3887118 -->
+<!-- Tooltip example from http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html -->
+
+<style>
+body {
+  font: 11px sans-serif;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  stroke-width: 3;
+  stroke-opacity: .2;
+  stroke-dasharray: 10;
+  shape-rendering: crispEdges;
+}
+
+.team path {
+  fill: none;
+  stroke-width: 3;
+  stroke-opacity: .7;
+  shape-rendering: crispEdges;
+}
+
+
+.tooltip {
+  position: absolute;
+  width: 200px;
+  height: 28px;
+  pointer-events: none;
+}
+
+.tick line {
+   display: none;
+}
+</style>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+
+<script>
+var margin = {top: 20, right: 20, bottom: 75, left: 40},
+    width = 1200 - margin.left - margin.right,
+    height = 3200 - margin.top - margin.bottom;
+
+/*
+ * value accessor - returns the value to encode for a given data object.
+ * scale - maps value to a visual display encoding, such as a pixel position.
+ * map function - maps from data value to display value
+ * axis - sets up axis
+ */
+
+// setup x
+var xValue = function(d) { return d; }, // data -> value
+    xScale = d3.scale.linear().range([0, width]), // value -> display
+    xMap = function(d) { return xScale(xValue(d));}; // data -> display
+
+// setup y
+var yValue = function(d) { return d; }, // data -> value
+    yScale = d3.scale.ordinal().rangePoints([0, height]), // value -> display
+    yMap = function(d) { return yScale(yValue(d));}, // data -> display
+    yAxis = d3.svg.axis().scale(yScale).orient("left");
+
+var rValue = function(d) { return d.value; }, // data -> value
+    rScale = d3.scale.linear().range([2, 22]), // value -> display
+    rMap = function(d) { return rScale(rValue(d));}; // data -> display
+
+// setup fill color
+var cValue = function(d) { return d },
+    color = d3.scale.category20c();
+
+// add the graph canvas to the body of the webpage
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// add the tooltip area to the webpage
+var tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("opacity", 0);
+
+
+function rotate(arr) {
+  var ret = [];
+  var len = arr.length;
+  var rowLen = arr[0].length;
+  for (var i = 0; i < len; ++i) {
+    for (var j = 0; j < rowLen; ++j) {
+      var r = ret[j] = ret[j] || [];
+      r[i] = arr[i][j];
+    }
+  }
+
+  return ret;
+}
+
+function link(arr) {
+  var links = [];
+  var len = arr.length;
+  var rowLen = arr[0].length - 1;
+  var linkn = 0;
+  for (var i = 0; i < len; ++i) {
+    for (var j = 0; j < rowLen; ++j) {
+      if(arr[i][j].value > 0 && arr[i][j+1].value > 0) {
+        links[linkn++] = [arr[i][j], arr[i][j+1]];
+      }
+    }
+  }
+
+  return links;
+}
+
+function datatize(data) {
+  var nameToValue = {};
+  var id = 0;
+  var years = [];
+
+  data.forEach(function(year) {
+    for (var s in year.scorers) {
+      var scorers = year.scorers;
+      if (nameToValue.hasOwnProperty(s)) {
+        nameToValue[s].total += scorers[s];
+        continue;
+      }
+
+      nameToValue[s] = {id: id++, value: scorers[s]};
+    }
+  });
+
+  var domain = [];
+  data.forEach(function(year, yn) {
+    var tallys = [];
+    for(var i = 0; i < id; ++i) {
+      tallys[i] = { value: 0, index: i };
+    }
+
+    var scorers = year.scorers;
+    var y = +year.year;
+    var total = 0;
+    for(var s in scorers) {
+      var _id = nameToValue[s].id;
+      var val = scorers[s];
+      tallys[_id] = {value: val, label: s, index: _id, year: y};
+      total += val;
+    }
+
+    domain.push(y);
+    years[yn] = tallys;
+    tallys.year = y;
+  });
+
+  yScale.domain(domain);
+
+  var sorted = years.map(function(d, i) {
+    var ret = d.slice();
+    ret.year = d.year;
+    return ret.sort(function(a, b) {
+      return b.value - a.value;
+    });
+  });
+
+  sorted.forEach(function(d,i) {
+    return d.forEach(function(dd, j) {
+      dd.sortedIndex = j;
+    });
+  });
+
+  return {
+    sorted: sorted,
+    rotated: rotate(years)
+  };
+};
+
+d3.json('goalScorers.json', function(data) {
+  var info = datatize(data);
+  data = info.sorted;
+
+  xScale.domain([-1, 19]);
+  rScale.domain([1, 25]);
+
+  var teams = [
+    { name: "Penguins (640)", start: yScale(1990), end: yScale(2000), color: "yellow" },
+    { name: "Capitals (98) ", start: yScale(2001), end: yScale(2002), color: "red" },
+    { name: "Capitals/Rangers (29 / 14)", start: yScale(2003), end: yScale(2003), color: "black" },
+    { name: "Rangers (181)", start: yScale(2005), end: yScale(2007), color: "blue" },
+    { name: "Flyers (35)", start: yScale(2011), end: yScale(2011), color: "orange" },
+    { name: "Stars/Buins (12 / 7)", start: yScale(2012), end: yScale(2012), color: "black" },
+    { name: "Devils (55)", start: yScale(2013), end: yScale(2013), color: "red" },
+  ];
+
+  var totals = {
+    1990: 30, 1991: 37, 1992: 60, 1993: 67, 1994: 38,
+    1995: 87, 1996: 48, 1997: 67, 1998: 83, 1999: 54,
+    2000: 69, 2001: 48, 2002: 41, 2003: 43, 2005: 69,
+    2006: 66, 2007: 46, 2011: 35, 2012: 19, 2013: 43,
+    2014: 12
+  };
+
+  var tickEnter = svg.append("g")
+    .attr("class", "team")
+    .selectAll("g")
+  .data(teams).enter()
+    .append("g");
+
+  tickEnter.append("path")
+    .attr("d", function(d) {
+      return "M" + 10 + "," + d.start + "h-10V" + d.end  + "h10";
+    })
+    .attr("stroke", function(d) { return d.color; });
+
+  tickEnter.append("text")
+    .style("text-anchor", "middle")
+    .attr("transform", function(d) {
+      return "translate(10,"+ (d.start + (d.end - d.start) / 2) +")rotate(-90)";
+    })
+    .attr("dy", "-1.2em")
+    .attr("font-size", "16px")
+    .text(function(d) { return d.name; });
+
+
+  // y-axis
+  svg.append("g")
+      .attr("transform", "translate(50,0)")
+      .attr("class", "y axis")
+      .call(yAxis)
+
+  svg.append("g")
+    .attr("transform", "translate(50, 0)")
+    .selectAll("text")
+    .data(yScale.domain())
+  .enter().append("text")
+    .attr("y", yScale)
+    .attr("x", -9)
+    .attr("text-anchor", "end")
+    .attr("dy", "2em")
+    .style("font-style", "italic")
+    .text(function(d) {
+      return "(" + totals[d] + ")";
+    });
+
+
+  var dotsEnter = svg.append("g")
+    .attr("class", "years")
+    .selectAll("g")
+    .data(data)
+  .enter().append("g")
+    .attr("class", "row")
+  .selectAll("g")
+    .data(function(d, i) { return d.filter(function(v) { return v.value > 0; }) })
+    .enter().append("g")
+    .attr("transform", function(d,i){ return "translate(50,"+yMap(d.year)+")";})
+    .attr("class", "dots");
+
+  dotsEnter.append("circle")
+    .attr("class", "dot")
+    .attr("r", rMap)
+    .attr("cx", function(d,i) { return xMap(i); })
+    .attr("cy", 0)
+    .style("fill", function(d) { return color(cValue(d.label));})
+    .style("fill-opacity", .75)
+    .style("stroke", function(d) { return color(cValue(d.label));})
+    .style("stroke-width", 2);
+
+  var dotText = dotsEnter.append("text")
+    .attr("x", function(d,i) { return xMap(i); })
+    .attr("y", function(d) { return 22; })
+    .attr("text-anchor", "middle")
+    .style("fill", function(d) { return color(cValue(d.label));});
+
+    dotText.append("tspan")
+      .attr("x", function(d,i) { return xMap(i); })
+      .attr("dy", "1.0em")
+      .text(function(d) {
+        var nameParts = d.label.split(" ");
+        var firstName = nameParts[0].substring(0,8);
+        return firstName;
+      });
+
+    dotText.append("tspan")
+      .attr("x", function(d,i) { return xMap(i); })
+      .attr("dy", "1.2em")
+      .text(function(d) {
+        var nameParts = d.label.split(" ");
+        var lastName = nameParts[1].substring(0,8);
+        return lastName;
+      });
+
+  dotsEnter.append("title")
+    .text(function(d) { return d.label + ": " + d.value; });
+
+
+  var diag = d3.svg.diagonal();
+
+  svg.append("g")
+      .attr("class", "links")
+      .attr("transform", "translate(50,0)")
+      .selectAll("g")
+      .data(link(info.rotated))
+    .enter().append("path")
+      .attr("class", "link")
+      .attr("d", function(d) {
+        var l1 = {
+          source: {
+            x: xMap(d[0].sortedIndex) - rMap(d[0]) - 1,
+            y: yMap(d[0].year)
+          },
+          target: {
+            x: xMap(d[1].sortedIndex) - rMap(d[1]) - 1,
+            y: yMap(d[1].year)
+          }
+        };
+
+        var l2 = {
+          source: {
+            x: xMap(d[1].sortedIndex) + rMap(d[1]) + 1,
+            y: yMap(d[1].year)
+          },
+          target: {
+            x: xMap(d[0].sortedIndex) + rMap(d[0]) + 1,
+            y: yMap(d[0].year)
+          }
+        };
+
+        var p = diag(l1);
+        var p2 = ""+diag(l2).replace(/^[^C]*/, "");
+        p += "A" + (rMap(d[1])) + "," +  (rMap(d[1])) + " 0 1 1 " + l2.source.x + "," + l2.source.y;
+        p += p2;
+        p += "A" + (rMap(d[0])) + "," +  (rMap(d[0])) + " 0 0 1 " + l1.source.x + "," + l1.source.y;
+
+        return p;
+      })
+/*
+      .attr("x1", function(d,i) { return xMap(d[0].sortedIndex); })
+      .attr("y1", function(d,i) { return yMap(d[0].year); })
+      .attr("x2", function(d,i) { return xMap(d[1].sortedIndex); })
+      .attr("y2", function(d,i) { return yMap(d[1].year); })
+      */
+      .style("fill", function(d) { return color(cValue(d[0].label));})
+      .style("fill-opacity", ".2");
+});
+
+</script>
+</body>
+</html>

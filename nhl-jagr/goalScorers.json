@@ -1,0 +1,350 @@
+[
+  {
+    "year": "1990",
+    "scorers": {
+      "Zarley Zalapski": 1,
+      "Mark Recchi": 2,
+      "Joe Mullen": 1,
+      "Bob Errey": 3,
+      "Paul Coffey": 1,
+      "Peter Taglianetti": 2,
+      "Randy Gilhen": 2,
+      "Gordie Roberts": 1,
+      "Phil Bourque": 3,
+      "Jiri Hrdina": 4,
+      "Mario Lemieux": 4,
+      "Tony Tanti": 1,
+      "Larry Murphy": 1,
+      "Troy Loney": 3,
+      "Bryan Trottier": 1
+    }
+  },
+  {
+    "year": "1991",
+    "scorers": {
+      "Phil Bourque": 3,
+      "Mario Lemieux": 12,
+      "Gordie Roberts": 2,
+      "Paul Coffey": 2,
+      "Joe Mullen": 1,
+      "Bryan Trottier": 1,
+      "Kevin Stevens": 6,
+      "Mark Recchi": 1,
+      "Bob Errey": 1,
+      "Jiri Hrdina": 1,
+      "Troy Loney": 2,
+      "Larry Murphy": 2,
+      "Ron Francis": 2,
+      "Rick Tocchet": 1
+    }
+  },
+  {
+    "year": "1992",
+    "scorers": {
+      "Larry Murphy": 4,
+      "Mario Lemieux": 10,
+      "Kevin Stevens": 10,
+      "Shawn McEachern": 14,
+      "Rick Tocchet": 7,
+      "Ron Francis": 3,
+      "Troy Loney": 1,
+      "Joe Mullen": 4,
+      "Michael Needham": 1,
+      "Martin Straka": 2,
+      "Peter Taglianetti": 1,
+      "Jeff Daniels": 1,
+      "Dave Tippett": 1,
+      "Michael Ramsey": 1
+    }
+  },
+  {
+    "year": "1993",
+    "scorers": {
+      "Martin Straka": 8,
+      "Douglas Brown": 3,
+      "Larry Murphy": 3,
+      "Joe Mullen": 11,
+      "Ron Francis": 15,
+      "Kevin Stevens": 13,
+      "Ulf Samuelsson": 1,
+      "Kjell Samuelsson": 1,
+      "Marty McSorley": 1,
+      "Mario Lemieux": 4,
+      "Tomas Sandstrom": 3,
+      "Greg Hawgood": 1,
+      "Greg Brown": 1
+    }
+  },
+  {
+    "year": "1994",
+    "scorers": {
+      "Luc Robitaille": 10,
+      "Kevin Stevens": 10,
+      "Ron Francis": 6,
+      "Tomas Sandstrom": 1,
+      "Larry Murphy": 4,
+      "Shawn McEachern": 2,
+      "Chris Joseph": 1,
+      "Joe Mullen": 1,
+      "Jim McKenzie": 1
+    }
+  },
+  {
+    "year": "1995",
+    "scorers": {
+      "Ron Francis": 16,
+      "Sergei Zubov": 4,
+      "Mario Lemieux": 19,
+      "Tomas Sandstrom": 6,
+      "Joe Dziedzic": 1,
+      "Bryan Smolinski": 4,
+      "Rusty Fitzgerald": 1,
+      "Norm MacIver": 1,
+      "Richard Park": 1,
+      "Markus Naslund": 1,
+      "Petr Nedved": 25,
+      "Chris Joseph": 2,
+      "Chris Tamer": 2,
+      "Brad Lauer": 1,
+      "Kevin Miller": 1
+    }
+  },
+  {
+    "year": "1996",
+    "scorers": {
+      "Mario Lemieux": 17,
+      "Ron Francis": 14,
+      "Petr Nedved": 5,
+      "Andreas Johansson": 1,
+      "Alex Hicks": 1,
+      "Kevin Hatcher": 4,
+      "JJ Daigneault": 1,
+      "Fredrik Olausson": 1,
+      "Dave Roche": 1
+    }
+  },
+  {
+    "year": "1997",
+    "scorers": {
+      "Kevin Hatcher": 10,
+      "Aleksey Morozov": 3,
+      "Greg Johnson": 1,
+      "Jiri Slegr": 1,
+      "Ron Francis": 15,
+      "Fredrik Olausson": 3,
+      "Eddie Olczyk": 2,
+      "Martin Straka": 6,
+      "Stu Barnes": 17,
+      "Robert Brown": 2,
+      "Robert Dome": 2
+    }
+  },
+  {
+    "year": "1998",
+    "scorers": {
+      "Brad Werenka": 3,
+      "Stu Barnes": 13,
+      "German Titov": 3,
+      "Patrick Lebeau": 1,
+      "Robert Lang": 7,
+      "Kevin Hatcher": 4,
+      "Bobby Dollas": 2,
+      "Martin Straka": 14,
+      "Dan Kesa": 1,
+      "Kip Miller": 12,
+      "Alexei Kovalev": 3,
+      "Jan Hrdina": 5,
+      "Jiri Slegr": 3,
+      "Darius Kasparaitis": 1,
+      "Martin Sonnenberg": 1,
+      "Rob Brown": 5,
+      "Ian Moran": 1,
+      "Matthew Barnaby": 1
+    }
+  },
+  {
+    "year": "1999",
+    "scorers": {
+      "Kip Miller": 2,
+      "Jiri Slegr": 4,
+      "Robert Lang": 12,
+      "Alexei Kovalev": 4,
+      "Ian Moran": 1,
+      "John Slaney": 1,
+      "German Titov": 5,
+      "Martin Straka": 6,
+      "Andrew Ference": 1,
+      "Matthew Barnaby": 2,
+      "Jan Hrdina": 9,
+      "Darius Kasparaitis": 1,
+      "Tyler Wright": 1,
+      "Rob Brown": 1,
+      "Janne Laukkanen": 1,
+      "Josef Beranek": 2
+    }
+  },
+  {
+    "year": "2000",
+    "scorers": {
+      "Martin Straka": 5,
+      "Alexei Kovalev": 8,
+      "Robert Lang": 5,
+      "Josef Beranek": 2,
+      "Kip Miller": 1,
+      "Jan Hrdina": 6,
+      "Toby Petersen": 1,
+      "Mario Lemieux": 24,
+      "Hans Jonsson": 3,
+      "Kevin Stevens": 5,
+      "William Tibbetts": 1,
+      "Andrew Ference": 2,
+      "Krzysztof Oliwa": 1,
+      "Janne Laukkanen": 1,
+      "Marc Bergevin": 1
+    }
+  },
+  {
+    "year": "2001",
+    "scorers": {
+      "Sergei Gonchar": 11,
+      "Sylvain Cote": 2,
+      "Adam Oates": 8,
+      "Ulf Dahlen": 9,
+      "Peter Bondra": 6,
+      "Dmitri Khristich": 3,
+      "Dainius Zubrus": 6,
+      "Brendan Witt": 1,
+      "Frantisek Kucera": 1
+    }
+  },
+  {
+    "year": "2002",
+    "scorers": {
+      "Peter Bondra": 3,
+      "Robert Lang": 9,
+      "Jeff Halpern": 2,
+      "Steve Konowalchuk": 3,
+      "Kip Miller": 7,
+      "Michael Nylander": 7,
+      "Ken Klee": 1,
+      "Rick Berry": 1,
+      "Sergei Gonchar": 5,
+      "Jason Doig": 1
+    }
+  },
+  {
+    "year": "2003",
+    "scorers": {
+      "Mike Grier": 1,
+      "Boyd Gordon": 1,
+      "Robert Lang": 11,
+      "Kip Miller": 2,
+      "Peter Bondra": 4,
+      "Dainius Zubrus": 2,
+      "Sergei Gonchar": 3,
+      "Jeff Halpern": 3,
+      "Alexander Semin": 1,
+      "Jason Doig": 1,
+      "Bobby Holik": 7,
+      "Fedor Tyutin": 2,
+      "Brian Leetch": 2,
+      "Matthew Barnaby": 1,
+      "Petr Nedved": 2,
+      "Boris Mironov": 1,
+      "Jan Hlavac": 1
+    }
+  },
+  {
+    "year": "2005",
+    "scorers": {
+      "Jason Strudwick": 2,
+      "Martin Rucinsky": 4,
+      "Michael Nylander": 15,
+      "Ville Nieminen": 2,
+      "Martin Straka": 11,
+      "Fedor Tyutin": 4,
+      "Petr Prucha": 11,
+      "Michal Rozsival": 1,
+      "Maxim Kondratiev": 1,
+      "Ryan Hollweg": 1,
+      "Tom Poti": 2,
+      "Jed Ortmeyer": 1,
+      "Petr Sykora": 5,
+      "Sandis Ozolinsh": 1
+    }
+  },
+  {
+    "year": "2006",
+    "scorers": {
+      "Martin Straka": 14,
+      "Michael Nylander": 13,
+      "Michal Rozsival": 7,
+      "Brendan Shanahan": 11,
+      "Petr Prucha": 9,
+      "Matt Cullen": 1,
+      "Darius Kasparaitis": 2,
+      "Aaron Ward": 1,
+      "Ryan Hollweg": 1,
+      "Marcel Hossa": 1,
+      "Marek Malik": 2,
+      "Sean Avery": 1,
+      "Thomas Pock": 2
+    }
+  },
+  {
+    "year": "2007",
+    "scorers": {
+      "Michal Rozsival": 6,
+      "Chris Drury": 3,
+      "Scott Gomez": 4,
+      "Martin Straka": 6,
+      "Daniel Girardi": 2,
+      "Brendan Shanahan": 9,
+      "Brandon Dubinsky": 7,
+      "Petr Prucha": 1,
+      "Sean Avery": 6,
+      "Marek Malik": 1
+    }
+  },
+  {
+    "year": "2011",
+    "scorers": {
+      "Claude Giroux": 15,
+      "Chris Pronger": 1,
+      "Daniel Briere": 2,
+      "Scott Hartnell": 9,
+      "Andrej Meszaros": 2,
+      "Kimmo Timonen": 1,
+      "Braydon Coburn": 1,
+      "Brayden Schenn": 2,
+      "Jakub Voracek": 1,
+      "Wayne Simmonds": 1
+    }
+  },
+  {
+    "year": "2012",
+    "scorers": {
+      "Ray Whitney": 2,
+      "Loui Eriksson": 2,
+      "Brenden Morrow": 3,
+      "Jamie Benn": 3,
+      "Trevor Daley": 1,
+      "Eric Nystrom": 1,
+      "Brad Marchand": 2,
+      "Gregory Campbell": 1,
+      "Zdeno Chara": 1,
+      "Tyler Seguin": 1,
+      "Milan Lucic": 1,
+      "Wade Redden": 1
+    }
+  },
+  {
+    "year": "2013",
+    "scorers": {
+      "Adam Henrique": 1,
+      "Andy Greene": 1,
+      "Travis Zajac": 2,
+      "Marek Zidlicky": 1
+    }
+  }
+]
