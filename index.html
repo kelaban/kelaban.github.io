@@ -26,9 +26,20 @@
     .slide {
       height: 100%;
       width: 100%;
+      align-items: center;
+      justify-content: center;
       text-align: center;
-      display: table;
+      display: flex;
+    }
+
+    .slide:nth-child(odd) {
       color: #8C7367;
+    }
+
+    .slide:nth-child(even) {
+      background-color: #F2524B;
+      color: #88F491;
+      text-transform: uppercase;
     }
 
     .slide .content {
@@ -37,20 +48,10 @@
     }
 
 
-    .really_big {
-      font-size: 80px;
-    }
 
     .bold {
       font-weight: bold;
     }
-
-
-    .break {
-      background-color: #F2524B;
-      color: #88F491;
-    }
-
 
     a {
       margin: 50px;
@@ -63,6 +64,14 @@
       color: #8C7367;
     }
 
+    .huge {
+      font-size: 96px;
+    }
+
+    .large {
+      font-size: 48px;
+    }
+
     .small {
       font-size: 12px;
     }
@@ -70,15 +79,6 @@
     .medium {
       font-size: 24px;
     }
-
-    .large {
-      font-size: 48px;
-    }
-
-    .huge {
-      font-size: 96px;
-    }
-
 
     ul {
       list-style-type: none;
@@ -103,25 +103,24 @@
             </p>
           </div>
         </article>
-        <article id="break__one" class="slide break">
+        <article id="break__one" class="slide">
           <div class="content large">
-            <p> BUT WHAT DO YOU DO </p>
+            <p> i am a </p>
           </div>
         </article>
         <article id="slide__two" class="slide">
           <div class="content medium">
-            <p>
-              I'M AN
-              <span class="large">engineer</span>
-              AT
-              <span class="large" >bloomberg</span>
-              LP
-            </p>
+            <ul>
+              <li>learner</li>
+              <li>problem solver</li>
+              <li><a href="https://issues.apache.org/jira/browse/SOLR-9183?jql=reporter%20%3D%20k317h%20OR%20comment%20~%20%22k317h%22">solr contributor</a></li>
+              <li>search infrastructure engineer</li>
+            </ul>
           </div>
         </article>
-        <article id="break__two" class="slide break">
+        <article id="break__two" class="slide">
           <div class="content large">
-            <p> SHOW ME SOMETHING COOL </p>
+            <p> show me something cool </p>
           </div>
         </article>
         <article id="slide__three" class="slide">
@@ -137,21 +136,6 @@
                 <a href="/nhl-all-time-scorers">nhl leading scorers</a>
               </li>
             </ul>
-          </div>
-        </article>
-        <article id="break__three" class="slide break">
-          <div class="content large">
-            <p> TELL ME A BEDTIME STORY </p>
-          </div>
-        </article>
-        <article id="slide__four" class="slide">
-          <div class="content small">
-            <p>
-              any opinions stated are my own and should in no way reflect bloomberg lp.
-            </p>
-            <p>
-              work and code samples that are linked to are not affiliated with bloomberg lp unless otherwise noted.
-            </p>
           </div>
         </article>
       </div>
