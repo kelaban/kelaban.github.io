@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/xwordmaker/precache-manifest.b6c9b1afe7c8fc9e3f0cdf35a22cbce8.js"
+  "/xwordmaker/precache-manifest.b6357279d3c0725cd8d9c21a55de06e9.js"
 );
 
 self.addEventListener('message', (event) => {
