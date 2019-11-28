@@ -1,10 +1,10 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "d25b23555a1dfda930bee1104df0ac8a",
+    "revision": "14414ce4620e5b4fcebc451142c46b7d",
     "url": "/xwordmaker/index.html"
   },
   {
-    "revision": "51e2743830296c1f1b8d",
+    "revision": "4e68a9accc228af4187e",
     "url": "/xwordmaker/static/css/main.85897755.chunk.css"
   },
   {
@@ -12,8 +12,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/xwordmaker/static/js/2.e55a3d32.chunk.js"
   },
   {
-    "revision": "51e2743830296c1f1b8d",
-    "url": "/xwordmaker/static/js/main.41f504d9.chunk.js"
+    "revision": "4e68a9accc228af4187e",
+    "url": "/xwordmaker/static/js/main.44608c87.chunk.js"
   },
   {
     "revision": "1dc39b8bc1599b98680f",
