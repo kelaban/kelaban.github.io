@@ -1,0 +1,1215 @@
+import { useState, useEffect, useMemo } from "react";
+
+// ===== Card values =====
+const SUITS = ["♠", "♥", "♦", "♣"];
+const RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const RANK_VALUE = { A: 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13 };
+const EVEN_RANKS = new Set(["2", "4", "6", "8", "10", "Q"]);
+
+const buildDeck = () => {
+  const deck = [];
+  for (const s of SUITS) for (const r of RANKS) deck.push({ rank: r, suit: s });
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+};
+
+// Round targets — exponential climb
+const ROUND_TARGETS = [50, 120, 250, 450, 750, 1200, 2000, 3500];
+
+// ===== Jokers =====
+const ALL_JOKERS = [
+  { id: "lucky7", name: "LUCKY.7", desc: "Drawing a 7 scores ×3.", color: "#ffcc00" },
+  { id: "gambler", name: "THE GAMBLER", desc: "All scores ×2. Wrong guesses kill 2 piles.", color: "#ff5555" },
+  { id: "compound", name: "COMPOUND INT", desc: "Every 5th correct guess scores ×5.", color: "#00ffaa" },
+  { id: "even", name: "EVEN STEVEN", desc: "Drawing an even rank (2/4/6/8/10/Q) scores ×2.", color: "#88ddff" },
+  { id: "laststand", name: "LAST STAND", desc: "When only 1 pile is alive, all scoring ×5.", color: "#ff8800" },
+  { id: "underdog", name: "UNDERDOG", desc: "Correct guesses with <25% odds score ×2.", color: "#cc66ff" },
+  { id: "surething", name: "SURE THING", desc: "Correct guesses with ≥75% odds score ×1.5.", color: "#66ff66" },
+  { id: "defib", name: "DEFIBRILLATOR", desc: "Once per round: revive a dead pile.", color: "#ff3355" },
+  { id: "reshuffle", name: "RESHUFFLE", desc: "Once per round: shuffle a live pile back into deck.", color: "#aa88ff" },
+  { id: "phoenix", name: "PHOENIX", desc: "First dead pile auto-revives after 3 correct guesses.", color: "#ff6600" },
+  { id: "counter", name: "CARD COUNTER", desc: "Shows count of each rank remaining in deck.", color: "#00ddff" },
+  { id: "deadreck", name: "DEAD RECKONING", desc: "Shows the bottom card of the deck.", color: "#ddaa00" },
+  { id: "combo", name: "COMBO BREAKER", desc: "Wrong guesses bank +1 streak for next hit.", color: "#ff99cc" },
+];
+
+const pickJokerOptions = (owned) => {
+  const available = ALL_JOKERS.filter((j) => !owned.find((o) => o.id === j.id));
+  const shuffled = [...available].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(3, shuffled.length));
+};
+
+// ===== Probability for a guess (uses remaining deck) =====
+const guessProbability = (top, direction, deckRemaining) => {
+  if (deckRemaining.length === 0) return 0;
+  const topIsAce = top.rank === "A";
+  const topLow = topIsAce ? 1 : RANK_VALUE[top.rank];
+  const topHigh = topIsAce ? 14 : RANK_VALUE[top.rank];
+
+  let favorable = 0;
+  for (const c of deckRemaining) {
+    const cIsAce = c.rank === "A";
+    const cLow = cIsAce ? 1 : RANK_VALUE[c.rank];
+    const cHigh = cIsAce ? 14 : RANK_VALUE[c.rank];
+    if (direction === "higher" && cHigh > topLow && c.rank !== top.rank) favorable++;
+    else if (direction === "lower" && cLow < topHigh && c.rank !== top.rank) favorable++;
+    else if (direction === "same" && c.rank === top.rank) favorable++;
+  }
+  return favorable / deckRemaining.length;
+};
+
+// ===== Card counter from deck =====
+const countByRank = (deck) => {
+  const counts = {};
+  for (const r of RANKS) counts[r] = 0;
+  for (const c of deck) counts[c.rank]++;
+  return counts;
+};
+
+// ===== Robot face =====
+function RobotFace() {
+  return (
+    <svg viewBox="0 0 16 22" shapeRendering="crispEdges" style={{ width: "70%", height: "70%" }}>
+      <rect x="7" y="1" width="2" height="1" fill="#ff3355" />
+      <rect x="7" y="2" width="2" height="2" fill="#ffcc00" />
+      <rect x="3" y="4" width="10" height="8" fill="#c0c0c0" />
+      <rect x="3" y="4" width="10" height="1" fill="#ffffff" />
+      <rect x="3" y="11" width="10" height="1" fill="#666" />
+      <rect x="5" y="6" width="2" height="2" fill="#00ffaa" />
+      <rect x="9" y="6" width="2" height="2" fill="#00ffaa" />
+      <rect x="5" y="6" width="1" height="1" fill="#ffffff" />
+      <rect x="9" y="6" width="1" height="1" fill="#ffffff" />
+      <rect x="5" y="9" width="6" height="1" fill="#000" />
+      <rect x="6" y="9" width="1" height="1" fill="#ff3355" />
+      <rect x="8" y="9" width="1" height="1" fill="#ff3355" />
+      <rect x="10" y="9" width="1" height="1" fill="#ff3355" />
+      <rect x="6" y="12" width="4" height="1" fill="#888" />
+      <rect x="2" y="13" width="12" height="7" fill="#a0a0b0" />
+      <rect x="2" y="13" width="12" height="1" fill="#ffffff" />
+      <rect x="2" y="19" width="12" height="1" fill="#555" />
+      <rect x="6" y="15" width="4" height="3" fill="#000" />
+      <rect x="7" y="16" width="1" height="1" fill="#ffcc00" />
+      <rect x="8" y="16" width="1" height="1" fill="#00ffaa" />
+      <rect x="1" y="14" width="1" height="4" fill="#666" />
+      <rect x="14" y="14" width="1" height="4" fill="#666" />
+    </svg>
+  );
+}
+
+// ===== Card =====
+function Card({ card, faceDown, dim, peelCard }) {
+  if (!card && !faceDown) {
+    return (
+      <div
+        style={{
+          width: "100%",
+          aspectRatio: "2 / 3",
+          background: "#008080",
+          border: "2px dashed #00cccc",
+          color: "#00cccc",
+          fontFamily: "'VT323', monospace",
+          fontSize: "clamp(20px, 8cqw, 40px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          containerType: "inline-size",
+        }}
+      >
+        ✕
+      </div>
+    );
+  }
+
+  if (faceDown) {
+    const isRedPeel = peelCard && (peelCard.suit === "♥" || peelCard.suit === "♦");
+    return (
+      <div
+        style={{
+          width: "100%",
+          aspectRatio: "2 / 3",
+          border: "2px solid #000",
+          boxShadow: "3px 3px 0 #000",
+          background: "#fff",
+          overflow: "hidden",
+          position: "relative",
+          containerType: "inline-size",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "#1a1a2e",
+            backgroundImage:
+              "repeating-linear-gradient(0deg, rgba(0,255,170,0.08) 0 1px, transparent 1px 4px), repeating-linear-gradient(90deg, rgba(0,255,170,0.06) 0 1px, transparent 1px 8px)",
+            border: "2px solid #00ffaa",
+            boxSizing: "border-box",
+            clipPath: peelCard ? "polygon(0 0, 100% 0, 100% 65%, 65% 100%, 0 100%)" : "none",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <RobotFace />
+          <div style={{ position: "absolute", top: "3%", left: "3%", width: "8%", height: "5%", background: "#00ffaa", boxShadow: "0 0 0 1px #000" }} />
+          <div style={{ position: "absolute", top: "3%", right: "3%", width: "8%", height: "5%", background: "#00ffaa", boxShadow: "0 0 0 1px #000" }} />
+          <div style={{ position: "absolute", bottom: "3%", left: "3%", width: "8%", height: "5%", background: "#00ffaa", boxShadow: "0 0 0 1px #000" }} />
+          <div style={{ position: "absolute", bottom: "3%", right: "3%", width: "8%", height: "5%", background: "#00ffaa", boxShadow: "0 0 0 1px #000" }} />
+        </div>
+        {peelCard && (
+          <>
+            <div style={{ position: "absolute", inset: 0, background: "#fff", clipPath: "polygon(100% 65%, 100% 100%, 65% 100%)", zIndex: 1 }} />
+            <div
+              style={{
+                position: "absolute",
+                bottom: "2%",
+                right: "5%",
+                lineHeight: 1,
+                fontFamily: "'VT323', monospace",
+                fontWeight: 700,
+                color: isRedPeel ? "#c00000" : "#000",
+                fontSize: "clamp(14px, 14cqw, 28px)",
+                textAlign: "right",
+                zIndex: 3,
+                transform: "rotate(180deg)",
+              }}
+            >
+              <div>{peelCard.rank}</div>
+              <div style={{ fontSize: "0.8em" }}>{peelCard.suit}</div>
+            </div>
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                zIndex: 2,
+                background: "linear-gradient(135deg, transparent calc(100% - 2px), #000 calc(100% - 2px), #000 100%)",
+                clipPath: "polygon(100% 60%, 100% 70%, 60% 100%, 70% 100%)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                pointerEvents: "none",
+                zIndex: 2,
+                background: "linear-gradient(135deg, transparent 60%, rgba(0,0,0,0.25) 75%, transparent 80%)",
+              }}
+            />
+          </>
+        )}
+      </div>
+    );
+  }
+
+  const isRed = card.suit === "♥" || card.suit === "♦";
+  return (
+    <div
+      style={{
+        width: "100%",
+        aspectRatio: "2 / 3",
+        background: "#fff",
+        border: "2px solid #000",
+        boxShadow: "3px 3px 0 #000",
+        opacity: dim ? 0.5 : 1,
+        filter: dim ? "grayscale(0.4)" : "none",
+        fontFamily: "'VT323', monospace",
+        color: isRed ? "#c00000" : "#000",
+        position: "relative",
+        containerType: "inline-size",
+      }}
+    >
+      <div style={{ position: "absolute", top: "3%", left: "6%", lineHeight: 1, fontSize: "clamp(14px, 14cqw, 28px)", fontWeight: 700 }}>
+        <div>{card.rank}</div>
+        <div style={{ fontSize: "0.8em" }}>{card.suit}</div>
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "clamp(28px, 28cqw, 56px)",
+        }}
+      >
+        {card.suit}
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          bottom: "3%",
+          right: "6%",
+          lineHeight: 1,
+          fontSize: "clamp(14px, 14cqw, 28px)",
+          fontWeight: 700,
+          transform: "rotate(180deg)",
+        }}
+      >
+        <div>{card.rank}</div>
+        <div style={{ fontSize: "0.8em" }}>{card.suit}</div>
+      </div>
+    </div>
+  );
+}
+
+// ===== Chunky button =====
+function DOSButton({ children, onClick, disabled, variant = "default", small, full }) {
+  const colors = {
+    default: { bg: "#c0c0c0", fg: "#000" },
+    primary: { bg: "#ffff00", fg: "#000" },
+    danger: { bg: "#ff5555", fg: "#000" },
+    success: { bg: "#00ffaa", fg: "#000" },
+  }[variant];
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-transform"
+      style={{
+        background: disabled ? "#888" : colors.bg,
+        color: colors.fg,
+        border: "2px solid #000",
+        boxShadow: disabled ? "none" : "3px 3px 0 #000",
+        padding: small ? "6px 8px" : "10px 14px",
+        fontFamily: "'VT323', monospace",
+        fontSize: small ? 16 : 18,
+        letterSpacing: 1,
+        textTransform: "uppercase",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.6 : 1,
+        width: full ? "100%" : "auto",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ===== Joker card =====
+function JokerCard({ joker, onSelect, selectable, small, depleted }) {
+  return (
+    <button
+      onClick={onSelect}
+      disabled={!selectable}
+      style={{
+        background: "#1a1a2e",
+        border: `2px solid ${joker.color}`,
+        boxShadow: `3px 3px 0 #000`,
+        padding: small ? "4px 6px" : "8px 10px",
+        cursor: selectable ? "pointer" : "default",
+        textAlign: "left",
+        fontFamily: "'VT323', monospace",
+        color: "#fff",
+        width: "100%",
+        opacity: depleted ? 0.4 : 1,
+        position: "relative",
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "'Press Start 2P', monospace",
+          fontSize: small ? 7 : 10,
+          color: joker.color,
+          letterSpacing: 1,
+          marginBottom: small ? 2 : 4,
+        }}
+      >
+        {joker.name}
+      </div>
+      {!small && <div style={{ fontSize: 14, lineHeight: 1.2, color: "#ddd" }}>{joker.desc}</div>}
+      {depleted && small && (
+        <div
+          style={{
+            position: "absolute",
+            top: 2,
+            right: 4,
+            fontSize: 9,
+            color: "#ff5555",
+            fontFamily: "'Press Start 2P', monospace",
+          }}
+        >
+          ✕
+        </div>
+      )}
+    </button>
+  );
+}
+
+export default function BeatTheRobot() {
+  // Run state
+  const [phase, setPhase] = useState("playing");
+  const [round, setRound] = useState(1);
+  const [runScore, setRunScore] = useState(0);
+  const [ownedJokers, setOwnedJokers] = useState([]);
+  const [jokerOptions, setJokerOptions] = useState([]);
+
+  // Round state
+  const [deck, setDeck] = useState([]);
+  const [piles, setPiles] = useState([]);
+  const [deadPiles, setDeadPiles] = useState([]);
+  const [selectedPile, setSelectedPile] = useState(null);
+  const [message, setMessage] = useState("");
+  const [roundScore, setRoundScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [flashPile, setFlashPile] = useState(null);
+  const [flashKind, setFlashKind] = useState(null);
+
+  // Joker per-round state
+  const [defibUsed, setDefibUsed] = useState(false);
+  const [reshuffleUsed, setReshuffleUsed] = useState(false);
+  const [phoenixUsed, setPhoenixUsed] = useState(false);
+  const [phoenixCounter, setPhoenixCounter] = useState(0); // counts correct guesses since first death
+  const [phoenixTarget, setPhoenixTarget] = useState(null); // pile idx to revive
+  const [bankedStreak, setBankedStreak] = useState(0); // combo breaker
+  const [correctCount, setCorrectCount] = useState(0); // for compound interest
+  const [activeMode, setActiveMode] = useState(null); // 'defib' | 'reshuffle' — pile-targeting
+  const [showRules, setShowRules] = useState(false);
+
+  const hasJoker = (id) => ownedJokers.some((j) => j.id === id);
+
+  useEffect(() => {
+    if (!document.getElementById("vt323-font")) {
+      const link = document.createElement("link");
+      link.id = "vt323-font";
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap";
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  const target = ROUND_TARGETS[round - 1] ?? 9999;
+
+  const startRound = (roundNum) => {
+    const d = buildDeck();
+    const initial = [];
+    for (let i = 0; i < 9; i++) initial.push([d.shift()]);
+    setPiles(initial);
+    setDeadPiles(Array(9).fill(false));
+    setDeck(d);
+    setSelectedPile(null);
+    setRoundScore(0);
+    setStreak(0);
+    setBankedStreak(0);
+    setCorrectCount(0);
+    setDefibUsed(false);
+    setReshuffleUsed(false);
+    setPhoenixUsed(false);
+    setPhoenixCounter(0);
+    setPhoenixTarget(null);
+    setActiveMode(null);
+    setMessage(`ROUND ${roundNum} — Reach ${ROUND_TARGETS[roundNum - 1]} pts.`);
+    setFlashPile(null);
+    setFlashKind(null);
+    setPhase("playing");
+  };
+
+  const startNewRun = () => {
+    setRound(1);
+    setRunScore(0);
+    setOwnedJokers([]);
+    startRound(1);
+  };
+
+  useEffect(() => {
+    startNewRun();
+  }, []);
+
+  const aliveCount = deadPiles.filter((d) => !d).length;
+  const rankCounts = useMemo(() => countByRank(deck), [deck]);
+  const bottomCard = deck.length > 0 ? deck[deck.length - 1] : null;
+
+  // ===== Pile click =====
+  const handlePileClick = (idx) => {
+    if (phase !== "playing") return;
+
+    // Active modes: defib/reshuffle target a pile
+    if (activeMode === "defib") {
+      if (!deadPiles[idx]) {
+        setMessage("Pick a DEAD pile to revive.");
+        return;
+      }
+      const newDead = deadPiles.map((d, i) => (i === idx ? false : d));
+      setDeadPiles(newDead);
+      setDefibUsed(true);
+      setActiveMode(null);
+      setMessage(`*** DEFIB! Pile ${idx + 1} revived. ***`);
+      // If phoenix was targeting this pile, clear it (already revived)
+      if (phoenixTarget === idx) setPhoenixTarget(null);
+      return;
+    }
+    if (activeMode === "reshuffle") {
+      if (deadPiles[idx]) {
+        setMessage("Pick a LIVE pile to reshuffle.");
+        return;
+      }
+      const pile = piles[idx];
+      // Put pile cards back into deck, shuffle, then deal one new card to that pile
+      const newDeck = [...deck, ...pile];
+      for (let i = newDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newDeck[i], newDeck[j]] = [newDeck[j], newDeck[i]];
+      }
+      const newCard = newDeck.shift();
+      const newPiles = piles.map((p, i) => (i === idx ? [newCard] : p));
+      setDeck(newDeck);
+      setPiles(newPiles);
+      setReshuffleUsed(true);
+      setActiveMode(null);
+      setMessage(`*** Pile ${idx + 1} reshuffled into deck. ***`);
+      return;
+    }
+
+    if (deadPiles[idx]) return;
+    setSelectedPile(idx);
+    setMessage(`Pile ${idx + 1} selected.`);
+  };
+
+  // ===== Guess =====
+  const guess = (direction) => {
+    if (phase !== "playing" || selectedPile === null) return;
+    const idx = selectedPile;
+    const pile = piles[idx];
+    const top = pile[pile.length - 1];
+    if (deck.length === 0) return;
+
+    const next = deck[0];
+    const remainingDeck = deck.slice(1);
+    const probability = guessProbability(top, direction, deck);
+
+    const topIsAce = top.rank === "A";
+    const nextIsAce = next.rank === "A";
+    const topLow = topIsAce ? 1 : RANK_VALUE[top.rank];
+    const topHigh = topIsAce ? 14 : RANK_VALUE[top.rank];
+    const nextLow = nextIsAce ? 1 : RANK_VALUE[next.rank];
+    const nextHigh = nextIsAce ? 14 : RANK_VALUE[next.rank];
+
+    let correct = false;
+    if (direction === "higher") correct = nextHigh > topLow && top.rank !== next.rank;
+    else if (direction === "lower") correct = nextLow < topHigh && top.rank !== next.rank;
+    else if (direction === "same") correct = top.rank === next.rank;
+
+    const newPiles = piles.map((p, i) => (i === idx ? [...p, next] : p));
+    setPiles(newPiles);
+    setDeck(remainingDeck);
+
+    if (correct) {
+      const newDepth = newPiles[idx].length;
+      const stackBonus = newDepth - 1;
+      let base = direction === "same" ? 50 : 10 * Math.max(1, stackBonus);
+
+      // ===== Joker multipliers =====
+      let mult = 1;
+      const breakdown = [];
+
+      if (hasJoker("lucky7") && next.rank === "7") {
+        mult *= 3;
+        breakdown.push("L7×3");
+      }
+      if (hasJoker("even") && EVEN_RANKS.has(next.rank)) {
+        mult *= 2;
+        breakdown.push("EVEN×2");
+      }
+      if (hasJoker("gambler")) {
+        mult *= 2;
+        breakdown.push("GMB×2");
+      }
+      if (hasJoker("laststand") && aliveCount === 1) {
+        mult *= 5;
+        breakdown.push("LAST×5");
+      }
+      if (hasJoker("underdog") && probability < 0.25 && probability > 0) {
+        mult *= 2;
+        breakdown.push("UD×2");
+      }
+      if (hasJoker("surething") && probability >= 0.75) {
+        mult *= 1.5;
+        breakdown.push("ST×1.5");
+      }
+      const newCorrectCount = correctCount + 1;
+      if (hasJoker("compound") && newCorrectCount % 5 === 0) {
+        mult *= 5;
+        breakdown.push("CMP×5");
+      }
+      setCorrectCount(newCorrectCount);
+
+      // Streak (with banked from combo breaker)
+      const newStreak = streak + 1 + bankedStreak;
+      const streakMult = Math.min(1 + Math.floor(newStreak / 3), 5);
+      setStreak(newStreak);
+      setBankedStreak(0);
+
+      const earned = Math.floor(base * mult * streakMult);
+      setRoundScore((s) => s + earned);
+
+      setFlashPile(idx);
+      setFlashKind("good");
+      setTimeout(() => {
+        setFlashPile(null);
+        setFlashKind(null);
+      }, 350);
+
+      // SAME revives all dead piles
+      let revived = 0;
+      let newDeadAfter = deadPiles;
+      if (direction === "same") {
+        revived = deadPiles.filter((d) => d).length;
+        if (revived > 0) {
+          newDeadAfter = Array(9).fill(false);
+          setDeadPiles(newDeadAfter);
+          setPhoenixTarget(null); // already revived
+        }
+      }
+
+      // Phoenix tick
+      if (hasJoker("phoenix") && !phoenixUsed && phoenixTarget !== null) {
+        const newCounter = phoenixCounter + 1;
+        if (newCounter >= 3) {
+          newDeadAfter = newDeadAfter.map((d, i) => (i === phoenixTarget ? false : d));
+          setDeadPiles(newDeadAfter);
+          setPhoenixUsed(true);
+          setPhoenixTarget(null);
+          setPhoenixCounter(0);
+        } else {
+          setPhoenixCounter(newCounter);
+        }
+      }
+
+      const newRoundScore = roundScore + earned;
+
+      // Round cleared
+      if (newRoundScore >= target) {
+        setRunScore((rs) => rs + newRoundScore);
+        setPhase(round >= ROUND_TARGETS.length ? "runWon" : "roundWon");
+        if (round < ROUND_TARGETS.length) setJokerOptions(pickJokerOptions(ownedJokers));
+        setMessage(`*** ROUND ${round} CLEARED — ${newRoundScore} pts ***`);
+        setSelectedPile(null);
+        return;
+      }
+
+      if (remainingDeck.length === 0) {
+        setPhase("runOver");
+        setMessage(`*** RAN OUT OF DECK. Needed ${target}, got ${newRoundScore}. ***`);
+        setSelectedPile(null);
+        return;
+      }
+
+      let msg = `+${earned}`;
+      if (breakdown.length) msg += ` [${breakdown.join(" ")}]`;
+      if (streakMult > 1) msg += ` ×${streakMult} streak`;
+      if (direction === "same" && revived > 0) msg += ` — ${revived} revived!`;
+      setMessage(msg);
+      setSelectedPile(null);
+    } else {
+      // Wrong guess
+      setStreak(0);
+      // Combo Breaker banks
+      if (hasJoker("combo")) {
+        setBankedStreak((b) => b + 1);
+      }
+
+      // Determine kills (Gambler kills 2)
+      const killCount = hasJoker("gambler") ? 2 : 1;
+      let newDead = deadPiles.map((d, i) => (i === idx ? true : d));
+      // Pick additional pile to kill (random alive)
+      if (killCount > 1) {
+        const aliveIndices = newDead
+          .map((d, i) => (!d ? i : -1))
+          .filter((i) => i !== -1);
+        if (aliveIndices.length > 0) {
+          const victim = aliveIndices[Math.floor(Math.random() * aliveIndices.length)];
+          newDead = newDead.map((d, i) => (i === victim ? true : d));
+        }
+      }
+
+      // Phoenix tracks first death
+      if (hasJoker("phoenix") && !phoenixUsed && phoenixTarget === null) {
+        setPhoenixTarget(idx);
+        setPhoenixCounter(0);
+      }
+
+      setDeadPiles(newDead);
+      setFlashPile(idx);
+      setFlashKind("bad");
+      setTimeout(() => {
+        setFlashPile(null);
+        setFlashKind(null);
+      }, 450);
+
+      const remainingAlive = newDead.filter((d) => !d).length;
+
+      if (remainingAlive === 0) {
+        if (roundScore >= target) {
+          setRunScore((rs) => rs + roundScore);
+          setPhase(round >= ROUND_TARGETS.length ? "runWon" : "roundWon");
+          if (round < ROUND_TARGETS.length) setJokerOptions(pickJokerOptions(ownedJokers));
+          setMessage(`*** ROUND ${round} CLEARED — ${roundScore} pts ***`);
+        } else {
+          setPhase("runOver");
+          setMessage(`*** ALL PILES DEAD. Needed ${target}, got ${roundScore}. ***`);
+        }
+        setSelectedPile(null);
+        return;
+      }
+      if (remainingDeck.length === 0) {
+        if (roundScore >= target) {
+          setRunScore((rs) => rs + roundScore);
+          setPhase(round >= ROUND_TARGETS.length ? "runWon" : "roundWon");
+          if (round < ROUND_TARGETS.length) setJokerOptions(pickJokerOptions(ownedJokers));
+          setMessage(`*** ROUND ${round} CLEARED — ${roundScore} pts ***`);
+        } else {
+          setPhase("runOver");
+          setMessage(`*** DECK EMPTY. Needed ${target}, got ${roundScore}. ***`);
+        }
+        setSelectedPile(null);
+        return;
+      }
+
+      let msg = `MISS! Pile ${idx + 1} dead.`;
+      if (killCount > 1) msg += ` Gambler killed another!`;
+      if (hasJoker("combo")) msg += ` Streak banked.`;
+      msg += ` ${remainingAlive} alive.`;
+      setMessage(msg);
+      setSelectedPile(null);
+    }
+  };
+
+  const chooseJoker = (joker) => {
+    const newJokers = [...ownedJokers, joker];
+    setOwnedJokers(newJokers);
+    const nextRound = round + 1;
+    setRound(nextRound);
+    setTimeout(() => startRound(nextRound), 0);
+  };
+
+  return (
+    <div
+      style={{
+        height: "100dvh",
+        maxHeight: "100dvh",
+        width: "100vw",
+        background: "#008080",
+        fontFamily: "'VT323', monospace",
+        padding: "8px",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        overflow: "hidden",
+      }}
+    >
+      <style>{`
+        @keyframes flashGood { 0%,100% { box-shadow: 3px 3px 0 #000; } 50% { box-shadow: 0 0 0 4px #00ff00, 3px 3px 0 #000; } }
+        @keyframes flashBad { 0% { transform: translateX(0); } 25% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 75% { transform: translateX(-2px); } 100% { transform: translateX(0); } }
+        @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+      `}</style>
+
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "min(520px, 95vmin)",
+          height: "100%",
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          minHeight: 0,
+        }}
+      >
+        {/* Title bar */}
+        <div
+          style={{
+            background: "#000080",
+            color: "#fff",
+            padding: "6px 10px",
+            border: "2px solid #000",
+            boxShadow: "3px 3px 0 #000",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 8,
+            flexShrink: 0,
+          }}
+        >
+          <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 10, letterSpacing: 1 }}>BEAT.THE.ROBOT</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ fontSize: 14 }}>R{round}/{ROUND_TARGETS.length}</div>
+            <button
+              onClick={() => setShowRules(true)}
+              style={{
+                background: "#c0c0c0",
+                color: "#000",
+                border: "1px solid #000",
+                width: 18,
+                height: 18,
+                fontFamily: "'VT323', monospace",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+                lineHeight: 1,
+                padding: 0,
+              }}
+            >
+              ?
+            </button>
+          </div>
+        </div>
+
+        {/* Score panel */}
+        <div
+          style={{
+            background: "#c0c0c0",
+            border: "2px solid #000",
+            boxShadow: "3px 3px 0 #000",
+            padding: "6px 10px",
+            marginBottom: 8,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr 1fr",
+            gap: 4,
+            fontSize: "clamp(14px, 2.6vmin, 22px)",
+            color: "#000",
+            flexShrink: 0,
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "clamp(10px, 1.6vmin, 14px)", opacity: 0.7 }}>SCORE</div>
+            <div style={{ fontWeight: 700, color: roundScore >= target ? "#008000" : "#000" }}>{roundScore}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "clamp(10px, 1.6vmin, 14px)", opacity: 0.7 }}>GOAL</div>
+            <div style={{ fontWeight: 700 }}>{target}</div>
+          </div>
+          <div>
+            <div style={{ fontSize: "clamp(10px, 1.6vmin, 14px)", opacity: 0.7 }}>STREAK</div>
+            <div style={{ fontWeight: 700, color: streak >= 3 ? "#c00000" : "#000" }}>
+              ×{streak}
+              {bankedStreak > 0 && <span style={{ color: "#cc66ff" }}> +{bankedStreak}</span>}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: "clamp(10px, 1.6vmin, 14px)", opacity: 0.7 }}>DECK</div>
+            <div style={{ fontWeight: 700 }}>{deck.length}</div>
+          </div>
+        </div>
+
+        {/* Card Counter (joker) */}
+        {hasJoker("counter") && (
+          <div
+            style={{
+              background: "#1a1a2e",
+              border: "2px solid #00ddff",
+              boxShadow: "3px 3px 0 #000",
+              padding: "4px 8px",
+              marginBottom: 8,
+              fontSize: 13,
+              color: "#fff",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              flexShrink: 0,
+            }}
+          >
+            <span style={{ color: "#00ddff", fontFamily: "'Press Start 2P', monospace", fontSize: 9 }}>COUNT:</span>
+            {RANKS.map((r) => (
+              <span key={r} style={{ opacity: rankCounts[r] === 0 ? 0.3 : 1 }}>
+                {r}:{rankCounts[r]}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Dead Reckoning (joker) */}
+        {hasJoker("deadreck") && bottomCard && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "#1a1a2e",
+              border: "2px solid #ddaa00",
+              boxShadow: "3px 3px 0 #000",
+              padding: "4px 8px",
+              marginBottom: 8,
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ fontSize: 9, color: "#ddaa00", fontFamily: "'Press Start 2P', monospace" }}>BOTTOM:</div>
+            <div
+              style={{
+                background: "#fff",
+                color: bottomCard.suit === "♥" || bottomCard.suit === "♦" ? "#c00000" : "#000",
+                padding: "2px 6px",
+                fontWeight: 700,
+                border: "1px solid #000",
+                fontSize: 16,
+              }}
+            >
+              {bottomCard.rank}
+              {bottomCard.suit}
+            </div>
+          </div>
+        )}
+
+        {/* Owned jokers strip */}
+        {ownedJokers.length > 0 && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: `repeat(${Math.min(ownedJokers.length, 4)}, 1fr)`,
+              gap: 4,
+              marginBottom: 8,
+              flexShrink: 0,
+            }}
+          >
+            {ownedJokers.map((j) => {
+              const depleted =
+                (j.id === "defib" && defibUsed) ||
+                (j.id === "reshuffle" && reshuffleUsed) ||
+                (j.id === "phoenix" && phoenixUsed);
+              return (
+                <JokerCard
+                  key={j.id}
+                  joker={j}
+                  small
+                  depleted={depleted}
+                  selectable={false}
+                  onSelect={() => {}}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* 3x3 grid — fills available space, cards scale to fit */}
+        <div
+          style={{
+            flex: "1 1 0",
+            minHeight: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 8,
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "clamp(4px, 1.2vmin, 12px)",
+              width: "min(100%, calc((100% - 0px)))",
+              maxHeight: "100%",
+              aspectRatio: "1 / 1.05",
+            }}
+          >
+          {piles.map((pile, i) => {
+            const top = pile[pile.length - 1];
+            const isDead = deadPiles[i];
+            const isSelected = selectedPile === i;
+            const flashing = flashPile === i;
+            const isPhoenixTarget = phoenixTarget === i;
+
+            return (
+              <button
+                key={i}
+                onClick={() => handlePileClick(i)}
+                disabled={(isDead && activeMode !== "defib") || phase !== "playing"}
+                style={{
+                  position: "relative",
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  cursor:
+                    (isDead && activeMode !== "defib") || phase !== "playing"
+                      ? "default"
+                      : "pointer",
+                  outline: isSelected
+                    ? "3px solid #ffff00"
+                    : activeMode === "defib" && isDead
+                    ? "3px dashed #ff3355"
+                    : activeMode === "reshuffle" && !isDead
+                    ? "3px dashed #aa88ff"
+                    : "none",
+                  outlineOffset: 2,
+                  animation: flashing
+                    ? flashKind === "good"
+                      ? "flashGood 0.35s ease"
+                      : "flashBad 0.45s ease"
+                    : "none",
+                }}
+              >
+                <Card card={top} faceDown={isDead} dim={isDead} peelCard={isDead ? top : null} />
+                {pile.length > 1 && !isDead && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -6,
+                      background: "#000080",
+                      color: "#ffff00",
+                      border: "2px solid #000",
+                      fontSize: 11,
+                      padding: "0 4px",
+                      fontFamily: "'VT323', monospace",
+                    }}
+                  >
+                    ×{pile.length}
+                  </div>
+                )}
+                {isPhoenixTarget && isDead && !phoenixUsed && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      left: -6,
+                      background: "#ff6600",
+                      color: "#000",
+                      border: "2px solid #000",
+                      fontSize: 10,
+                      padding: "0 4px",
+                      fontFamily: "'Press Start 2P', monospace",
+                    }}
+                  >
+                    🔥{3 - phoenixCounter}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+          </div>
+        </div>
+
+        {/* Terminal message */}
+        <div
+          style={{
+            background: "#000",
+            color: "#00ff00",
+            border: "2px solid #000",
+            boxShadow: "3px 3px 0 #000",
+            padding: "6px 10px",
+            marginBottom: 8,
+            fontSize: 15,
+            minHeight: 32,
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ marginRight: 4 }}>&gt;</span>
+          {message}
+          {phase === "playing" && <span style={{ animation: "blink 1s steps(2) infinite" }}>_</span>}
+        </div>
+
+        {/* Active joker abilities */}
+        {phase === "playing" && (hasJoker("defib") || hasJoker("reshuffle")) && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 8, flexShrink: 0 }}>
+            {hasJoker("defib") && (
+              <DOSButton
+                onClick={() =>
+                  setActiveMode((m) => (m === "defib" ? null : "defib")) ||
+                  setMessage(activeMode === "defib" ? "Cancelled." : "DEFIB: tap a dead pile.")
+                }
+                disabled={defibUsed || deadPiles.every((d) => !d)}
+                variant="danger"
+                small
+                full
+              >
+                {activeMode === "defib" ? "✕ Cancel" : "⚡ Defib"}
+              </DOSButton>
+            )}
+            {hasJoker("reshuffle") && (
+              <DOSButton
+                onClick={() =>
+                  setActiveMode((m) => (m === "reshuffle" ? null : "reshuffle")) ||
+                  setMessage(activeMode === "reshuffle" ? "Cancelled." : "RESHUFFLE: tap a live pile.")
+                }
+                disabled={reshuffleUsed}
+                variant="default"
+                small
+                full
+              >
+                {activeMode === "reshuffle" ? "✕ Cancel" : "♻ Reshuffle"}
+              </DOSButton>
+            )}
+          </div>
+        )}
+
+        {/* Guess controls */}
+        {phase === "playing" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, flexShrink: 0 }}>
+            <DOSButton onClick={() => guess("lower")} disabled={selectedPile === null || !!activeMode} variant="default" small full>
+              ▼ Lower
+            </DOSButton>
+            <DOSButton onClick={() => guess("same")} disabled={selectedPile === null || !!activeMode} variant="danger" small full>
+              = Same
+            </DOSButton>
+            <DOSButton onClick={() => guess("higher")} disabled={selectedPile === null || !!activeMode} variant="primary" small full>
+              ▲ Higher
+            </DOSButton>
+          </div>
+        )}
+
+        {phase === "roundWon" && (
+          <div>
+            <div
+              style={{
+                background: "#c0c0c0",
+                border: "2px solid #000",
+                boxShadow: "3px 3px 0 #000",
+                padding: 10,
+                marginBottom: 8,
+                color: "#000",
+                fontSize: 15,
+                textAlign: "center",
+              }}
+            >
+              <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 11, marginBottom: 6 }}>CHOOSE A JOKER</div>
+              <div style={{ fontSize: 14 }}>Run total: {runScore} pts</div>
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {jokerOptions.map((j) => (
+                <JokerCard key={j.id} joker={j} selectable onSelect={() => chooseJoker(j)} />
+              ))}
+              {jokerOptions.length === 0 && (
+                <DOSButton
+                  onClick={() => {
+                    const nextRound = round + 1;
+                    setRound(nextRound);
+                    startRound(nextRound);
+                  }}
+                  variant="success"
+                  full
+                >
+                  No more jokers — continue
+                </DOSButton>
+              )}
+            </div>
+          </div>
+        )}
+
+        {phase === "runOver" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div
+              style={{
+                background: "#ff5555",
+                border: "2px solid #000",
+                boxShadow: "3px 3px 0 #000",
+                padding: 10,
+                color: "#000",
+                textAlign: "center",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: 11,
+              }}
+            >
+              ROBOT WINS
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 14, marginTop: 6 }}>
+                Reached round {round} — {runScore} total pts
+              </div>
+            </div>
+            <DOSButton onClick={startNewRun} variant="danger" full>
+              ↻ New Run
+            </DOSButton>
+          </div>
+        )}
+
+        {phase === "runWon" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div
+              style={{
+                background: "#ffff00",
+                border: "2px solid #000",
+                boxShadow: "3px 3px 0 #000",
+                padding: 10,
+                color: "#000",
+                textAlign: "center",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: 11,
+              }}
+            >
+              ★ RUN COMPLETE ★
+              <div style={{ fontFamily: "'VT323', monospace", fontSize: 14, marginTop: 6 }}>Total: {runScore + roundScore} pts</div>
+            </div>
+            <DOSButton onClick={startNewRun} variant="primary" full>
+              ↻ New Run
+            </DOSButton>
+          </div>
+        )}
+
+      </div>
+
+      {/* Rules modal */}
+      {showRules && (
+        <div
+          onClick={() => setShowRules(false)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#c0c0c0",
+              border: "2px solid #000",
+              boxShadow: "4px 4px 0 #000",
+              padding: 16,
+              maxWidth: 400,
+              width: "100%",
+              fontFamily: "'VT323', monospace",
+              color: "#000",
+            }}
+          >
+            <div
+              style={{
+                background: "#000080",
+                color: "#fff",
+                padding: "4px 8px",
+                marginBottom: 10,
+                marginTop: -16,
+                marginLeft: -16,
+                marginRight: -16,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontFamily: "'Press Start 2P', monospace",
+                fontSize: 10,
+              }}
+            >
+              <span>HOW TO PLAY</span>
+              <button
+                onClick={() => setShowRules(false)}
+                style={{
+                  background: "#c0c0c0",
+                  border: "1px solid #000",
+                  width: 18,
+                  height: 18,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ fontSize: 16, lineHeight: 1.4 }}>
+              Tap a pile, guess HIGHER, LOWER, or SAME. Hit the round score goal to clear. Clear a round → choose a joker.
+              <br />
+              <br />
+              <b>Scoring:</b> 10 × stack depth × streak (3+ in a row = ×2, capped at ×5). SAME correct = 50 + revives all dead piles.
+              <br />
+              <br />
+              <b>Aces</b> are high or low, whichever helps you. Jokers stack their multipliers.
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
