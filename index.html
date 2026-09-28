@@ -1,156 +1,448 @@
-<!DOCTYPE>
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Keith Laban</title>
-    <link href='http://fonts.googleapis.com/css?family=Dosis' rel='stylesheet' type='text/css'>
+    <meta name="description" content="Keith Laban's fridge. Move the magnets around.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧲</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --fridge-a: #fbf6ec;
+        --fridge-b: #eee4d2;
+        --seam: rgba(0, 0, 0, 0.07);
+        --ink: #5b4a42;
+        --btn-bg: #ffffff;
+        --magnet-size: clamp(44px, 16vw, 120px);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fridge-a: #3a3e44;
+          --fridge-b: #25282c;
+          --seam: rgba(255, 255, 255, 0.06);
+          --ink: #d9dde2;
+          --btn-bg: #3f444a;
+        }
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        background:
+          repeating-linear-gradient(90deg, transparent 0 3px, var(--seam) 3px 4px) ,
+          linear-gradient(100deg, var(--fridge-a), var(--fridge-b));
+        background-blend-mode: soft-light, normal;
+        color: var(--ink);
+        font-family: "Fredoka", system-ui, sans-serif;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* The fridge door handle */
+      .handle {
+        position: fixed;
+        right: clamp(10px, 3vw, 36px);
+        top: 50%;
+        width: 16px;
+        height: 42vh;
+        transform: translateY(-50%);
+        border-radius: 10px;
+        background: linear-gradient(90deg, #8d9399, #f4f6f8 40%, #b7bcc2 70%, #6f757b);
+        box-shadow: -4px 6px 14px rgba(0, 0, 0, 0.25);
+        pointer-events: none;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      #fridge { visibility: hidden; }
+      #fridge.ready { visibility: visible; }
+
+      .magnet {
+        position: absolute;
+        left: 0;
+        top: 0;
+        cursor: grab;
+        touch-action: none;
+        transition: filter 0.15s;
+        filter:
+          drop-shadow(0 2px 0 rgba(0, 0, 0, 0.18))
+          drop-shadow(0 5px 6px rgba(0, 0, 0, 0.22));
+        will-change: transform;
+      }
+
+      .magnet.dragging {
+        cursor: grabbing;
+        filter:
+          drop-shadow(0 4px 0 rgba(0, 0, 0, 0.12))
+          drop-shadow(0 18px 18px rgba(0, 0, 0, 0.3));
+      }
+
+      .animating .magnet {
+        transition: transform 0.7s cubic-bezier(0.34, 1.4, 0.64, 1), filter 0.15s;
+      }
+
+      .letter {
+        font-size: var(--magnet-size);
+        font-weight: 700;
+        line-height: 1;
+        /* A lighter top edge makes the letters look like moulded plastic */
+        text-shadow: 0 -2px 0 rgba(255, 255, 255, 0.35);
+      }
+
+      .tile {
+        display: block;
+        padding: 0.45em 0.9em;
+        border-radius: 10px;
+        font-size: clamp(16px, 3.4vw, 24px);
+        font-weight: 600;
+        color: #fff;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .tile:focus-visible, .tools button:focus-visible {
+        outline: 3px solid #2f80ed;
+        outline-offset: 3px;
+      }
+
+      .note {
+        width: clamp(150px, 30vw, 200px);
+        padding: 18px 16px 22px;
+        background: #ffe675;
+        color: #4a3b12;
+        font-family: "Caveat", cursive;
+        font-size: clamp(20px, 4vw, 26px);
+        line-height: 1.15;
+        box-shadow: inset 0 -12px 18px -12px rgba(0, 0, 0, 0.15);
+      }
+
+      .tools {
+        position: fixed;
+        left: 16px;
+        bottom: 16px;
+        display: flex;
+        gap: 10px;
+        z-index: 100000;
+      }
+
+      .tools button {
+        font: 600 15px "Fredoka", system-ui, sans-serif;
+        color: var(--ink);
+        background: var(--btn-bg);
+        border: 0;
+        border-radius: 999px;
+        padding: 8px 16px;
+        cursor: pointer;
+        box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.12);
+      }
+
+      .tools button:active { transform: translateY(1px); }
+
+      @media (prefers-reduced-motion: reduce) {
+        .animating .magnet { transition: none; }
+      }
+    </style>
   </head>
-  <style>
-    html, body{
-      height: 100%;
-      font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
-      font-weight: 300;
-      font-size: 24px;
-    }
-
-    #container {
-      height: 100%;
-      width: 100%;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    #inner {
-      width: 100%
-    }
-
-    .slide {
-      height: 100%;
-      width: 100%;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      display: flex;
-    }
-
-    .slide:nth-child(odd) {
-      color: #8C7367;
-    }
-
-    .slide:nth-child(even) {
-      background-color: #F2524B;
-      color: #88F491;
-      text-transform: uppercase;
-    }
-
-    .slide .content {
-      display: table-cell;
-      vertical-align: middle;
-    }
-
-
-
-    .bold {
-      font-weight: bold;
-    }
-
-    a {
-      margin: 50px;
-      text-decoration: none;
-      font-weight: bold;
-      color: #F2524B;
-    }
-
-    a:hover {
-      color: #8C7367;
-    }
-
-    .huge {
-      font-size: 96px;
-    }
-
-    .large {
-      font-size: 48px;
-    }
-
-    .small {
-      font-size: 12px;
-    }
-
-    .medium {
-      font-size: 24px;
-    }
-
-    ul {
-      list-style-type: none;
-    }
-
-    li {
-      margin: 20px;
-    }
-
-
-  </style>
 
   <body>
-    <div id="container">
-      <div id="inner">
-        <article id="slide__one" class="slide">
-          <div class="content huge">
-            <p class="bold" > keith laban </p>
-            <p class="medium">
-              <a id="mail_me" target="_blank" href="mailto:laban@k317h.com">email</a>
-              <a id="github_me" target="_blank" href="https://github.com/kelaban">github</a>
-            </p>
-          </div>
-        </article>
-       <!-- <article id="break__one" class="slide">
-          <div class="content large">
-            <p> i am a </p>
-          </div>
-        </article>
-        <article id="slide__two" class="slide">
-          <div class="content medium">
-            <ul>
-              <li>learner</li>
-              <li>problem solver</li>
-              <li><a href="https://issues.apache.org/jira/browse/SOLR-9183?jql=reporter%20%3D%20k317h%20OR%20comment%20~%20%22k317h%22">solr contributor</a></li>
-              <li>search infrastructure engineer</li>
-            </ul>
-          </div>
-        </article>
-        <article id="break__two" class="slide">
-          <div class="content large">
-            <p> show me something cool </p>
-          </div>
-        </article>
-        <article id="slide__three" class="slide">
-          <div class="content large">
-            <h1>dataviz</h1>
-          </div>
-          <div class="content">
-            <ul>
-              <li>
-                <a href="/nhl-around-the-world">nhl around the world</a>
-              </li>
-              <li>
-                <a href="/nhl-all-time-scorers">nhl leading scorers</a>
-              </li>
-            </ul>
-          </div>
-        </article>-->
-      </div>
+    <h1 class="sr-only">Keith Laban</h1>
+    <div class="handle" aria-hidden="true"></div>
+    <main id="fridge"></main>
+    <div class="tools">
+      <button id="shuffle" type="button">shuffle</button>
+      <button id="tidy" type="button">tidy up</button>
     </div>
 
     <script>
-      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
-      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
-      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
-      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+      (function () {
+        var fridge = document.getElementById('fridge');
+        var COLORS = ['#F2524B', '#F5B700', '#2F80ED', '#27AE60', '#9B51E0', '#FF7A2F', '#EB4F9B'];
+        var NAME = ['keith', 'laban'];
+        var EXTRAS = 'hisomewtcdyu!?'.split('');
+        var LINKS = [
+          { text: 'email me', href: 'mailto:laban@k317h.com', color: '#F2524B' },
+          { text: 'github', href: 'https://github.com/kelaban', color: '#24292f' }
+        ];
+        var STORAGE_KEY = 'fridge-v1';
 
-      ga('create', 'UA-56442513-1', 'auto');
-      ga('send', 'pageview');
+        var magnets = [];
+        var topZ = 1;
 
+        function rand(min, max) { return min + Math.random() * (max - min); }
+        function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+        function addMagnet(el, kind) {
+          el.classList.add('magnet');
+          fridge.appendChild(el);
+          var m = { el: el, kind: kind, x: 0, y: 0, r: 0, home: null };
+          magnets.push(m);
+          makeDraggable(m);
+          return m;
+        }
+
+        // Build the magnets
+        var lastColor;
+        NAME.forEach(function (word, line) {
+          word.split('').forEach(function (ch, i) {
+            var el = document.createElement('div');
+            el.className = 'letter';
+            el.textContent = ch;
+            el.setAttribute('aria-hidden', 'true');
+            var c;
+            do { c = pick(COLORS); } while (c === lastColor);
+            lastColor = c;
+            el.style.color = c;
+            var m = addMagnet(el, 'name');
+            m.line = line;
+            m.index = i;
+          });
+        });
+
+        EXTRAS.forEach(function (ch) {
+          var el = document.createElement('div');
+          el.className = 'letter';
+          el.textContent = ch;
+          el.setAttribute('aria-hidden', 'true');
+          el.style.color = pick(COLORS);
+          addMagnet(el, 'extra');
+        });
+
+        LINKS.forEach(function (link, i) {
+          var a = document.createElement('a');
+          a.className = 'tile';
+          a.href = link.href;
+          a.textContent = link.text;
+          a.style.background = link.color;
+          if (link.href.indexOf('http') === 0) {
+            a.target = '_blank';
+            a.rel = 'noopener';
+          }
+          var m = addMagnet(a, 'link');
+          m.index = i;
+        });
+
+        var note = document.createElement('div');
+        note.className = 'note';
+        note.innerHTML = 'hi! it’s my fridge.<br>move stuff around.<br>— k';
+        addMagnet(note, 'note');
+
+        function place(m, x, y, r) {
+          m.x = x; m.y = y; m.r = r;
+          m.el.style.transform = 'translate(' + x + 'px,' + y + 'px) rotate(' + r + 'deg)';
+        }
+
+        // Where everything goes on a freshly tidied fridge
+        function computeHome() {
+          var W = window.innerWidth;
+          var H = window.innerHeight;
+          var small = W < 600;
+          var lineH = magnets[0].el.offsetHeight;
+          var centerY = H * (small ? 0.4 : 0.46);
+
+          NAME.forEach(function (word, line) {
+            var row = magnets.filter(function (m) { return m.kind === 'name' && m.line === line; });
+            var gap = lineH * 0.06;
+            var total = row.reduce(function (s, m) { return s + m.el.offsetWidth; }, 0) + gap * (row.length - 1);
+            var x = (W - total) / 2 + (line === 1 ? lineH * 0.25 : -lineH * 0.25);
+            var y = centerY - lineH + line * lineH * 1.02;
+            row.forEach(function (m) {
+              m.home = { x: x + rand(-3, 3), y: y + rand(-5, 5), r: rand(-8, 8) };
+              x += m.el.offsetWidth + gap;
+            });
+          });
+
+          var links = magnets.filter(function (m) { return m.kind === 'link'; });
+          var linkGap = 18;
+          var linksW = links.reduce(function (s, m) { return s + m.el.offsetWidth; }, 0) + linkGap * (links.length - 1);
+          var lx = (W - linksW) / 2;
+          var ly = centerY + lineH * 1.35;
+          links.forEach(function (m) {
+            m.home = { x: lx, y: ly + rand(-4, 4), r: rand(-5, 5) };
+            lx += m.el.offsetWidth + linkGap;
+          });
+
+          var noteM = magnets.filter(function (m) { return m.kind === 'note'; })[0];
+          noteM.home = small
+            ? { x: (W - noteM.el.offsetWidth) / 2 - 20, y: ly + 70, r: -4 }
+            : { x: W * 0.07, y: H * 0.1, r: -6 };
+
+          // Spare letters live along the top and bottom edges, away from the name
+          var extras = magnets.filter(function (m) { return m.kind === 'extra'; });
+          var slots = scatterSlots(extras.length, W, H, lineH, small);
+          extras.forEach(function (m, i) { m.home = slots[i]; });
+        }
+
+        function scatterSlots(n, W, H, lineH, small) {
+          var slots = [];
+          var perRow = Math.ceil(n / 2);
+          var left = small ? 12 : W * 0.3;
+          var right = W - lineH - (small ? 40 : 90);
+          var span = Math.max(right - left, lineH);
+          for (var i = 0; i < n; i++) {
+            var top = i < perRow;
+            var col = top ? i : i - perRow;
+            var x = left + (span * (col + 0.5)) / perRow - lineH / 3 + rand(-8, 8);
+            var y = top
+              ? rand(10, 30)
+              : H - lineH - rand(70, 95);
+            slots.push({ x: x, y: y, r: rand(-25, 25) });
+          }
+          return slots;
+        }
+
+        function animate(fn) {
+          document.body.classList.add('animating');
+          fn();
+          clearTimeout(animate.t);
+          animate.t = setTimeout(function () {
+            document.body.classList.remove('animating');
+          }, 750);
+        }
+
+        function tidy() {
+          computeHome();
+          magnets.forEach(function (m) { place(m, m.home.x, m.home.y, m.home.r); });
+          save();
+        }
+
+        function shuffle() {
+          var W = window.innerWidth;
+          var H = window.innerHeight;
+          magnets.forEach(function (m) {
+            var w = m.el.offsetWidth;
+            var h = m.el.offsetHeight;
+            place(m, rand(8, Math.max(8, W - w - 50)), rand(8, Math.max(8, H - h - 70)), rand(-30, 30));
+          });
+          save();
+        }
+
+        function save() {
+          try {
+            var W = window.innerWidth;
+            var H = window.innerHeight;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(magnets.map(function (m) {
+              return [m.x / W, m.y / H, m.r];
+            })));
+          } catch (e) { /* storage unavailable, the fridge just won't remember */ }
+        }
+
+        function restore() {
+          try {
+            var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (!saved || saved.length !== magnets.length) return false;
+            var W = window.innerWidth;
+            var H = window.innerHeight;
+            magnets.forEach(function (m, i) {
+              place(m, saved[i][0] * W, saved[i][1] * H, saved[i][2]);
+            });
+            return true;
+          } catch (e) {
+            return false;
+          }
+        }
+
+        function makeDraggable(m) {
+          var start = null;
+          var moved = false;
+
+          m.el.addEventListener('pointerdown', function (e) {
+            if (e.button !== 0) return;
+            start = { px: e.clientX, py: e.clientY, x: m.x, y: m.y };
+            moved = false;
+            m.el.setPointerCapture(e.pointerId);
+            m.el.style.zIndex = ++topZ;
+          });
+
+          m.el.addEventListener('pointermove', function (e) {
+            if (!start) return;
+            var dx = e.clientX - start.px;
+            var dy = e.clientY - start.py;
+            if (!moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+            if (!moved) {
+              moved = true;
+              m.el.classList.add('dragging');
+            }
+            // Tilt a little in the direction of travel, like it's being tugged
+            var tilt = Math.max(-12, Math.min(12, e.movementX || 0));
+            m.el.style.transform = 'translate(' + (start.x + dx) + 'px,' + (start.y + dy) + 'px) rotate(' + (m.r + tilt) + 'deg) scale(1.08)';
+          });
+
+          function end(e) {
+            if (!start) return;
+            if (moved) {
+              var W = window.innerWidth;
+              var H = window.innerHeight;
+              var x = Math.min(Math.max(start.x + e.clientX - start.px, -m.el.offsetWidth / 2), W - m.el.offsetWidth / 2);
+              var y = Math.min(Math.max(start.y + e.clientY - start.py, -m.el.offsetHeight / 2), H - m.el.offsetHeight / 2);
+              m.el.classList.remove('dragging');
+              place(m, x, y, m.r + rand(-6, 6));
+              save();
+            }
+            start = null;
+          }
+
+          m.el.addEventListener('pointerup', end);
+          m.el.addEventListener('pointercancel', end);
+
+          // A drag shouldn't count as clicking a link
+          m.el.addEventListener('click', function (e) {
+            if (moved) {
+              e.preventDefault();
+              moved = false;
+            }
+          });
+          m.el.addEventListener('dragstart', function (e) { e.preventDefault(); });
+        }
+
+        document.getElementById('shuffle').addEventListener('click', function () { animate(shuffle); });
+        document.getElementById('tidy').addEventListener('click', function () { animate(tidy); });
+
+        // Keep the arrangement when the window changes size, just stretched to fit
+        var lastW = window.innerWidth;
+        var lastH = window.innerHeight;
+        window.addEventListener('resize', function () {
+          var W = window.innerWidth;
+          var H = window.innerHeight;
+          magnets.forEach(function (m) { place(m, m.x * W / lastW, m.y * H / lastH, m.r); });
+          lastW = W;
+          lastH = H;
+        });
+
+        var started = false;
+        function init() {
+          if (started) return;
+          started = true;
+          if (!restore()) tidy();
+          lastW = window.innerWidth;
+          lastH = window.innerHeight;
+          fridge.classList.add('ready');
+        }
+        setTimeout(init, 2500);
+
+        // Measure after the magnet font arrives so letter widths are right
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(init);
+        } else {
+          window.addEventListener('load', init);
+        }
+      })();
     </script>
   </body>
-
 </html>
